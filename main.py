@@ -13,9 +13,6 @@ def main():
   stock, start_date, end_date, interval, small, large = sys.argv[1:]  
   stock_data = fetch_stock_data(stock, interval, start_date, end_date)
  
-  initial_cash = 10000 
-  strategy_parameters = f'{small}MA_{large}MA'
-
   signals = crossover_signal_with_slope(stock_data, small, large)
   stock_data['Signal'] = signals['Signal']
 
