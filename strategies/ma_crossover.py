@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 
-def crossover_signal_with_slope(data, small_win, long_win):
+def crossover_signal_with_slope(data, small_win=7, long_win=14):
+
     key_small = f'SMA_{small_win}'
     key_large = f'SMA_{long_win}'
 
@@ -32,7 +33,8 @@ def crossover_signal_with_slope(data, small_win, long_win):
 
     return signals
 
-def crossover_signal(data, small_win, long_win):
+def crossover_signal(data, small_win=7, long_win=14):
+
     key_small = f'SMA_{small_win}'
     key_large = f'SMA_{long_win}'
   
@@ -42,7 +44,6 @@ def crossover_signal(data, small_win, long_win):
     signals = pd.DataFrame(index=data.index)
     signals['Signal'] = 0.0
     
-    # pdb.set_trace()
     data['Signals'] = 0
 
     data['Signals'][int(small_win):] = np.where(data[key_small][int(small_win):] > data[key_large][int(small_win):], 1, 0)

@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot_moving_average_crossover(stock_data, small, large):
+def plot_moving_average_crossover(stock_data, small=7, long=14):
 
   key_small = f'SMA_{small}'
   key_large = f'SMA_{large}'
