@@ -4,7 +4,7 @@ import numpy as np
 def calculate_ema(data, span):
   return data.ewm(span=span, adjust=False).mean()
 
-def ema_strategy(data, short_window=12, long_window=26):
+def ema_strategy(data, short_window=7, long_window=14):
   signals = pd.DataFrame(index=data.index)
   signals['close'] = data['close']
   

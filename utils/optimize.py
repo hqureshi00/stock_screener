@@ -1,6 +1,6 @@
 import pandas as pd
-import numpy as np
-from utils import fetch_stock_data, simulate_trades
+from .fetch_stock_data import fetch_stock_data
+from .simulate_trades import simulate_trades
 from strategies.ma_crossover import crossover_signal_with_slope, crossover_signal
 
 def optimize_ema_parameters():
@@ -52,8 +52,8 @@ def run_optimize_func():
     intervals = ['1min', '5min', '15min', '30min']
     stock_names = ['NVDA', 'MSFT', 'NFLX', 'GOOG', 'AAPL']
 
-    start_date = '2021-01-01'
-    end_date = '2021-12-31'
+    start_date = '01-01-2021'
+    end_date = '21-12-2021'
 
     columns = ['stock_name', 'start_date', 'end_date', 'small_win', 'long_win', 'profit']
     df = pd.DataFrame(columns=columns)
@@ -62,15 +62,19 @@ def run_optimize_func():
     for interval in intervals:
       for stock in stock_names:
         data = fetch_stock_data(stock, interval, start_date, end_date)
-        results_df = optimize_ma_crossover_parameters(data, interval, stock, '2021-01-01', '2021-12-31')
+        results_df = optimize_ma_crossover_parameters(data, interval, stock, start_date, end_date)
         interval_results[interval] = results_df
         # Find the best parameters
         best_params = results_df.loc[results_df['profit'].idxmax()]
         row = {'stock_name': stock, 'start_date': start_date, 'end_date': end_date, 'small_win': best_params['small_win'] , 'long_win': best_params['profit'], 'profit': best_params['profit']}
-        
-        df = df.append(row, ignore_index=True)
+        # pdb.set_trace()
+        # df = df.append(row, ignore_index=True)
+        row = pd.DataFrame([row])
+        df = pd.concat([df, row], ignore_index=True)
 
     csv_file_path = 'optimized_parameters_for_moving_average_crossover.csv'
     df.to_csv(csv_file_path, index=False)
 
+if __name__ == "__main__":
+    run_optimize_func()
 

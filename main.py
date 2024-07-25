@@ -2,13 +2,14 @@ from utils import fetch_stock_data, simulate_trades
 from utils.plotting.plot_ma_crossover import plot_moving_average_crossover
 from strategies.ma_crossover import crossover_signal_with_slope, crossover_signal
 from strategies.ema import ema_strategy
+from utils.plotting.plot_ema import plot_ema
 
 import sys
 
 
 def main():
 
-  if (len(sys.argv[1:]) < 6 or len(sys.argv[1:]) > 6 ):
+  if (len(sys.argv[1:]) < 5 or len(sys.argv[1:]) > 5 ):
     print("Please enter arguments: stock, start_date, end_date, strategy")
     print("""
     Strategies Available: 
@@ -30,7 +31,10 @@ def main():
   elif strategy_name == 'EMA':
     signals = ema_strategy(stock_data)
     stock_data['Signal'] = signals['Buy_Sell']
-    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date) 
+    stock_data['EMA_short'] = signals['EMA_short']
+    stock_data['EMA_long'] = signals['EMA_long']
+    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+    plot_ema(stock_data, small=7, long=14) 
 
   
   elif strategy_name == 'MACD':

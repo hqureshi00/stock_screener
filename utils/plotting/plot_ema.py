@@ -1,14 +1,15 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot_moving_average_crossover(stock_data, small=7, long=14):
+def plot_ema(stock_data, small=12, long=26):
 
-  key_small = f'SMA_{small}'
-  key_large = f'SMA_{long}'
+  key_small = f'EMA_short'
+  key_large = f'EMA_long'
 
-  label1 = f'{small}-day SMA'
-  label2 = f'{long}-day SMA'
+  label1 = f'{small}-day EMA'
+  label2 = f'{long}-day EMA'
   plt.figure(figsize=(14, 7))
+
   df = pd.DataFrame(stock_data)
   df['timestamp'] = pd.to_datetime(df['timestamp'])
   df.set_index('timestamp', inplace=True)
