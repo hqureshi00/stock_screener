@@ -1,3 +1,15 @@
+
+Today's Tasks:
+1, 2, 3 and 4
+(with a critical eye as if I am about to explain it to Huma)
+Tomorrow (Saturday)
+7 and 8
+
+Sunday
+
+Testing everything 
+
+####Backlog
 1. Go through the SMA strategy, see how it works, and check if the slope functionality works + the removal of weekend time functionality
 2. Go through the EMA strategy, check if the plot function works alright
 3. Go through the MACD strategy, check if it works, and create a plot function
@@ -6,7 +18,7 @@
 6. Go through the candlesticks strategy, check if it works and create a plot function
 7. Optimize the 1. EMA 2. MACD 3. RSI
 8. Run a mega function that for a stock_name, start_date, end_date gives the interval it should run at, and the strategy it should use (or maybe just a table) and the parameters those strategies should be used with (that means that I have to optimize the parameters for some, and for some I just need to go normally like BB and candlestick patterns)
-9. Final verification and cross-validation processes with TradingView
+9. Final verification and cross-validation processes with TradingView; also how to benchmark and evaluate thoroughly
 
 ##############################
 

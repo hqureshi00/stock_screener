@@ -7,26 +7,53 @@ from strategies.macd import generate_macd_signals
 from strategies.rsi import generate_rsi_signals
 from strategies.bollinger_bands import generate_bb_signals
 from strategies.candlestick_patterns import generate_candlestick_signals
-
+import argparse
 import sys
 
 
 def main():
 
-  if (len(sys.argv[1:]) < 5 or len(sys.argv[1:]) > 5 ):
-    print("Please enter arguments: stock, start_date, end_date, strategy")
-    print("""
-    Strategies Available: 
-          - MA CrossOver
-          - MACD
-          - EMA
-    """)
-    sys.exit()
+  parser = argparse.ArgumentParser(
+        description="Process stock data using different trading strategies."
+    )
+    
+  parser.add_argument(
+      "stock", 
+      type=str, 
+      help="The stock symbol (e.g., AAPL for Apple Inc.)"
+  )
+  parser.add_argument(
+      "start_date", 
+      type=str, 
+      help="The start date in DD-MM-YYYY format (e.g., 01-01-2023)"
+  )
+  parser.add_argument(
+      "end_date", 
+      type=str, 
+      help="The end date in DD-MM-YYYY format (e.g., 01-01-2023)"
+  )
+  parser.add_argument(
+      "strategy", 
+      type=str, 
+      choices=["MACrossOver", "MACD", "EMA"], 
+      help="The trading strategy to apply. Options: 'MA CrossOver', 'MACD', 'EMA'"
+  )
 
-  stock, start_date, end_date, interval, strategy_name = sys.argv[1:]  
+  parser.add_argument(
+        "--interval", 
+        type=str, 
+        choices=["1min", "5min", "15min", "30min"], 
+        default="1min", 
+        help="The interval for the data. Options: '1min', '5min', '15min', '30min'. Default is '1min'."
+    )
+
+
+  args = parser.parse_args()
+
+  stock, start_date, end_date, interval, strategy_name = args.stock, args.start_date, args.end_date, args.interval, args.strategy
   stock_data = fetch_stock_data(stock, interval, start_date, end_date)
  
-  if strategy_name == 'MA CrossOver':
+  if strategy_name == 'MACrossOver':
     signals = crossover_signal_with_slope(stock_data)
     stock_data['Signal'] = signals['Signal']
     simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)  
