@@ -53,8 +53,8 @@ def optimize_ma_crossover_parameters(data, interval, stock_name, start_date, end
 
 def run_optimize_func():
     intervals = ['1min', '5min', '15min', '30min']
-    # stock_names = ['NVDA', 'MSFT', 'NFLX', 'GOOG', 'AAPL']
-    stock_names = ['NVDA']
+    stock_names = ['NVDA', 'MSFT', 'NFLX', 'GOOG', 'AAPL']
+    # stock_names = ['NVDA']
 
     start_date = '01-06-2024'
     end_date = '1-07-2024'
@@ -63,8 +63,8 @@ def run_optimize_func():
     df = pd.DataFrame(columns=columns)
 
     interval_results = {}
-    for interval in intervals:
-      for stock in stock_names:
+    for stock in stock_names:
+      for interval in intervals:
         print(f'Processing for {interval} - {stock}')
         data = fetch_stock_data(stock, interval, start_date, end_date)
         results_df = optimize_ma_crossover_parameters(data, interval, stock, start_date, end_date)
