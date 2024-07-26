@@ -44,6 +44,7 @@ def main():
         type=str, 
         choices=["1min", "5min", "15min", "30min"], 
         default="1min", 
+        required=True,
         help="The interval for the data. Options: '1min', '5min', '15min', '30min'. Default is '1min'."
     )
 

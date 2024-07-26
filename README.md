@@ -27,10 +27,9 @@ python script.py [stock] [start_date] [end_date] [strategy] [--interval INTERVAL
    - `MA CrossOver`
    - `MACD`
    - `EMA`
+   
+### Other Required Arguments
 
-### Optional Arguments
-
-- `-h, --help`: Show this help message and exit
 - `--interval {1min,5min,15min,30min}`: The interval for the data. Options:
   - `1min`
   - `5min`
@@ -38,6 +37,11 @@ python script.py [stock] [start_date] [end_date] [strategy] [--interval INTERVAL
   - `30min`
   
   Default is `1min`.
+
+
+### Optional Arguments
+
+- `-h, --help`: Show this help message and exit
 
 ### Example Command
 
