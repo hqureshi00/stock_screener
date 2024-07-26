@@ -23,7 +23,7 @@ def crossover_signal_with_slope(data, small_win=7, long_win=14):
     for i in range(int(small_win), len(data)):
         if data[key_small].iloc[i] > data[key_large].iloc[i] and data['Slope'].iloc[i] > 0:
             data['Signals'].iloc[i] = 1
-        elif data[key_small].iloc[i] < data[key_large].iloc[i] and data['Slope'].iloc[i] < 0:
+        elif data[key_small].iloc[i] < data[key_large].iloc[i] and data['Slope'].iloc[i] > 0:
             data['Signals'].iloc[i] = -1
         else:
             data['Signals'].iloc[i] = 0
@@ -32,6 +32,8 @@ def crossover_signal_with_slope(data, small_win=7, long_win=14):
     signals['Signal'] = data['Signals'].diff()
 
     return signals
+
+#TODO: Why does slope greater than zero work?
 
 def crossover_signal(data, small_win=7, long_win=14):
 
