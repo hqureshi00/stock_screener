@@ -12,19 +12,36 @@ Clone the repository or download the script.
 
 ## Usage
 
-usage: script.py [-h] [--interval {1min,5min,15min,30min}] stock start_date end_date strategy
+To run the script, use the following command format:
 
-Process stock data using different trading strategies.
+```sh
+python script.py [stock] [start_date] [end_date] [strategy] [--interval INTERVAL]
+```
 
-positional arguments:
-  stock                 The stock symbol (e.g., AAPL for Apple Inc.)
-  start_date            The start date in YYYY-MM-DD format (e.g., 2023-01-01)
-  end_date              The end date in YYYY-MM-DD format (e.g., 2023-12-31)
-  strategy              The trading strategy to apply. Options: 'MA CrossOver', 'MACD', 'EMA'
+### Positional Arguments
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --interval {1min,5min,15min,30min}
-                        The interval for the data. Options: '1min', '5min', '15min', '30min'. Default is '1min'.
+1. `stock`: The stock symbol (e.g., AAPL for Apple Inc.)
+2. `start_date`: The start date in YYYY-MM-DD format (e.g., 2023-01-01)
+3. `end_date`: The end date in YYYY-MM-DD format (e.g., 2023-12-31)
+4. `strategy`: The trading strategy to apply. Options:
+   - `MA CrossOver`
+   - `MACD`
+   - `EMA`
 
-Example Command: python script.py [stock] [start_date] [end_date] [strategy] [--interval INTERVAL]
+### Optional Arguments
+
+- `-h, --help`: Show this help message and exit
+- `--interval {1min,5min,15min,30min}`: The interval for the data. Options:
+  - `1min`
+  - `5min`
+  - `15min`
+  - `30min`
+  
+  Default is `1min`.
+
+### Example Command
+
+```sh
+python script.py AAPL 2023-01-01 2023-12-31 MACD --interval 5min
+```
+```
