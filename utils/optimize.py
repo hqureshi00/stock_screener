@@ -10,20 +10,23 @@ def optimize_ma_crossover_parameters(data, interval, stock_name, start_date, end
     results = []
 
     # Define small and long window ranges based on interval
-    if interval == '30min':
-        small_win_range = [3, 5]
-        long_win_range = [8, 10]
-    elif interval == '15min':
-        small_win_range = [5, 7]
-        long_win_range = [10, 14]
-    elif interval == '5min':
-        small_win_range = [5, 7]
-        long_win_range = [10, 14]
-    elif interval == '1min':
-        small_win_range = [3, 5]
-        long_win_range = [8, 10]
-    else:
-        raise ValueError("Unsupported interval")
+    # if interval == '30min':
+    #     small_win_range = [3, 5]
+    #     long_win_range = [8, 10]
+    # elif interval == '15min':
+    #     small_win_range = [5, 7]
+    #     long_win_range = [10, 14]
+    # elif interval == '5min':
+    #     small_win_range = [5, 7]
+    #     long_win_range = [10, 14]
+    # elif interval == '1min':
+    #     small_win_range = [3, 5]
+    #     long_win_range = [8, 10]
+    # else:
+    #     raise ValueError("Unsupported interval")
+
+    small_win_range = [3, 8]
+    long_win_range = [8, 16]
 
     for small_win in small_win_range:
         for long_win in long_win_range:
@@ -50,25 +53,27 @@ def optimize_ma_crossover_parameters(data, interval, stock_name, start_date, end
 
 def run_optimize_func():
     intervals = ['1min', '5min', '15min', '30min']
-    stock_names = ['NVDA', 'MSFT', 'NFLX', 'GOOG', 'AAPL']
+    # stock_names = ['NVDA', 'MSFT', 'NFLX', 'GOOG', 'AAPL']
+    stock_names = ['NVDA']
 
-    start_date = '01-01-2021'
-    end_date = '21-12-2021'
+    start_date = '01-06-2024'
+    end_date = '1-07-2024'
 
-    columns = ['stock_name', 'start_date', 'end_date', 'small_win', 'long_win', 'profit']
+    columns = ['stock_name', 'interval',  'start_date', 'end_date', 'small_win', 'long_win', 'profit']
     df = pd.DataFrame(columns=columns)
 
     interval_results = {}
     for interval in intervals:
       for stock in stock_names:
+        print(f'Processing for {interval} - {stock}')
         data = fetch_stock_data(stock, interval, start_date, end_date)
         results_df = optimize_ma_crossover_parameters(data, interval, stock, start_date, end_date)
         interval_results[interval] = results_df
-        # Find the best parameters
+   
         best_params = results_df.loc[results_df['profit'].idxmax()]
-        row = {'stock_name': stock, 'start_date': start_date, 'end_date': end_date, 'small_win': best_params['small_win'] , 'long_win': best_params['profit'], 'profit': best_params['profit']}
-        # pdb.set_trace()
-        # df = df.append(row, ignore_index=True)
+      
+        row = {'stock_name': stock, 'interval': interval, 'start_date': start_date, 'end_date': end_date, 'small_win': best_params['small_win'] , 'long_win': best_params['long_win'], 'profit': best_params['profit']}
+        
         row = pd.DataFrame([row])
         df = pd.concat([df, row], ignore_index=True)
 

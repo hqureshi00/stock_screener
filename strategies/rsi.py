@@ -27,7 +27,7 @@ def generate_rsi_signals(df, buy_threshold=30, sell_threshold=70):
         else:
             signals.append(0)  # Hold signal
     
-    df['RSI_Signal'] = signals
+    df['Signal'] = signals
     
     return df
 

@@ -3,6 +3,10 @@ from utils.plotting.plot_ma_crossover import plot_moving_average_crossover
 from strategies.ma_crossover import crossover_signal_with_slope, crossover_signal
 from strategies.ema import ema_strategy
 from utils.plotting.plot_ema import plot_ema
+from strategies.macd import generate_macd_signals
+from strategies.rsi import generate_rsi_signals
+from strategies.bollinger_bands import generate_bb_signals
+from strategies.candlestick_patterns import generate_candlestick_signals
 
 import sys
 
@@ -36,9 +40,26 @@ def main():
     simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
     plot_ema(stock_data, small=7, long=14) 
 
-  
   elif strategy_name == 'MACD':
-    pass
+    signals = generate_macd_signals(stock_data)
+    stock_data['Signal'] = signals['Signal']
+    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+
+
+  elif strategy_name == 'CandlestickPatterns':
+    signals = generate_candlestick_signals(stock_data)
+    stock_data['Signal'] = signals['Signal']
+    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+
+  elif strategy_name == 'BollingerBands':
+    signals = generate_bb_signals(stock_data)
+    stock_data['Signal'] = signals['Signal']
+    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+
+  elif strategy_name == 'RSI':
+    signals = generate_rsi_signals(stock_data)
+    stock_data['Signal'] = signals['Signal']
+    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
   
 
 if __name__ == "__main__":
