@@ -45,8 +45,8 @@ python script.py [stock] [start_date] [end_date] [strategy] [--interval INTERVAL
 
 ### Example Command
 
-To compute the output profit for stock `AAPL` and `start_date` `01-01-2023` and `end_date` `01-01-2023` with `MACD` as strategy 
-and interval of 5min, use the following command:
+To compute output profit for stock `AAPL` and `start_date` `01-01-2023` and `end_date` `01-01-2023` with `MACD` as strategy 
+and `interval` of `5min`, use the following command:
 
 ```sh
 python main.py AAPL 01-01-2023 01-02-2023 MACD --interval 5min
