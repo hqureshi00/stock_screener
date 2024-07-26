@@ -21,10 +21,10 @@ python script.py [stock] [start_date] [end_date] [strategy] [--interval INTERVAL
 ### Positional Arguments
 
 1. `stock`: The stock symbol (e.g., AAPL for Apple Inc.)
-2. `start_date`: The start date in YYYY-MM-DD format (e.g., 2023-01-01)
-3. `end_date`: The end date in YYYY-MM-DD format (e.g., 2023-12-31)
+2. `start_date`: The start date in DD-MM-YYYY format (e.g., 01-01-2023)
+3. `end_date`: The end date in DD-MM-YYYY format (e.g., `01-01-2023)
 4. `strategy`: The trading strategy to apply. Options:
-   - `MA CrossOver`
+   - `MACrossOver`
    - `MACD`
    - `EMA`
    
@@ -45,7 +45,9 @@ python script.py [stock] [start_date] [end_date] [strategy] [--interval INTERVAL
 
 ### Example Command
 
+To compute the output profit for stock `AAPL` and `start_date` `01-01-2023` and `end_date` `01-01-2023` with `MACD` as strategy 
+and interval of 5min, use the following command:
+
 ```sh
-python script.py AAPL 2023-01-01 2023-12-31 MACD --interval 5min
-```
+python main.py AAPL 01-01-2023 01-02-2023 MACD --interval 5min
 ```
