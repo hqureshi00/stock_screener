@@ -1,16 +1,10 @@
-
-Today's Tasks:
-1, 2, 3 and 4
-(with a critical eye as if I am about to explain it to Huma)
-Tomorrow (Saturday)
-7 and 8
-
-Sunday
-
-Testing everything 
+Today's Tasks
+1. Finalize MACD 
+2. Finalize RSI 
+3. Optimization
 
 ####Backlog
-1. Go through the SMA strategy, see how it works, and check if the slope functionality works + the removal of weekend time functionality
+1. Go through the SMA strategy, see how it works, and check if the slope functionality works + the removal of weekend time functionality - done
 2. Go through the EMA strategy, check if the plot function works alright
 3. Go through the MACD strategy, check if it works, and create a plot function
 4. Go through the RSI strategy, check if it works, and create a plot function

@@ -22,6 +22,3 @@ def ema_strategy(data, short_window=7, long_window=14):
   
   return signals
 
-
-    
-

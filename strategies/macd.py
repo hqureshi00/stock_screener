@@ -1,40 +1,42 @@
 import pandas as pd
+import pdb
+import numpy as np
+import pandas_ta as ta
 
-def calculate_macd(df, short_window=12, long_window=26, signal_window=9):
-    # Calculate the Short Term Exponential Moving Average
-    df['ShortEMA'] = df['Close'].ewm(span=short_window, adjust=False).mean()
-    # Calculate the Long Term Exponential Moving Average
-    df['LongEMA'] = df['Close'].ewm(span=long_window, adjust=False).mean()
-    # Calculate the MACD line
-    df['MACD'] = df['ShortEMA'] - df['LongEMA']
-    # Calculate the Signal line
-    df['Signal'] = df['MACD'].ewm(span=signal_window, adjust=False).mean()
-    
-    return df
 
-def generate_macd_signals(df):
-    signals = []
-    position = None  # 1 means buy, -1 means sell
+def calculate_ema(series, window):
+    return series.ewm(span=window, adjust=False).mean()
 
-    for i in range(len(df)):
-        if df['MACD'][i] > df['Signal'][i]:
-            if position != 1:
-                signals.append(1)
-                position = 1
-            else:
-                signals.append(0)
-        elif df['MACD'][i] < df['Signal'][i]:
-            if position != -1:
-                signals.append(-1)
-                position = -1
-            else:
-                signals.append(0)
-        else:
-            signals.append(0)
+def generate_macd_signals(data, short_window=12, long_window=26, signal_window=9):
+    signals = pd.DataFrame(index=data.index)
+    signals['close'] = data['close']
     
-    df['Signal'] = signals
+    # Calculate short-term and long-term EMA
+    signals['EMA_short'] = calculate_ema(data['close'], short_window)
+    signals['EMA_long'] = calculate_ema(data['close'], long_window)
     
-    return df
+    # Calculate MACD and Signal Line
+    signals['MACD'] = signals['EMA_short'] - signals['EMA_long']
+    signals['Signal_Line'] = calculate_ema(signals['MACD'], signal_window)
+    
+    # Generate buy and sell signals
+    signals['Signal'] = 0
+    signals['Signal'][signal_window:] = np.where(
+        signals['MACD'][signal_window:] > signals['Signal_Line'][signal_window:], 1, -1
+    )
+    signals['Position'] = signals['Signal'].diff()
+
+    # Buy signal: 1, Sell signal: -1
+    signals['Buy_Sell'] = np.where(
+        signals['Position'] == 1, 1,
+        np.where(signals['Position'] == -1, -1, 0)
+    )
+
+    count_ones = (signals['Signal'] == 1).sum()
+    count_minus = (signals['Signal'] == -1).sum()
+
+    
+    return signals
 
 # Example usage
 # Assuming you have a DataFrame `df` with a 'Close' column containing the stock prices

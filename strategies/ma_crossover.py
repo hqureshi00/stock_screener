@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def crossover_signal_with_slope(data, small_win=7, long_win=14):
 
     key_small = f'SMA_{small_win}'
@@ -20,10 +21,11 @@ def crossover_signal_with_slope(data, small_win=7, long_win=14):
     data['Signals'] = 0
 
     # Generate signals based on crossover and slope condition
+    # Point to Discuss
     for i in range(int(small_win), len(data)):
         if data[key_small].iloc[i] > data[key_large].iloc[i] and data['Slope'].iloc[i] > 0:
             data['Signals'].iloc[i] = 1
-        elif data[key_small].iloc[i] < data[key_large].iloc[i] and data['Slope'].iloc[i] > 0:
+        elif data[key_small].iloc[i] < data[key_large].iloc[i] and data['Slope'].iloc[i] < 0:
             data['Signals'].iloc[i] = -1
         else:
             data['Signals'].iloc[i] = 0
