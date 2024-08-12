@@ -1,18 +1,14 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
+import pdb
 
 # Plotting function
-
 
 def plot_macd(df, short_window=12, long_window=26, signal_window=9):
     # Calculate MACD strategy
     
     plt.figure(figsize=(14, 10))
-    count_ones = (df['Signal'] == 1).sum()
-    count_minus = (df['Signal'] == -1).sum()
-    
     # Subplot 1: Close Prices and Buy/Sell Signals
     ax1 = plt.subplot(2, 1, 1)
     ax1.plot(df.index, df['close'], label='Close Price')
@@ -48,3 +44,6 @@ def plot_macd(df, short_window=12, long_window=26, signal_window=9):
     
     plt.tight_layout()
     plt.show()
+
+    #TODO: why are so many buy and sell signal being generated in the MACD when the signal lines are not crossing
+    #TODO: why no trades for MACD

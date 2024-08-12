@@ -1,7 +1,8 @@
 import pandas as pd
+import pdb
 
 def calculate_rsi(df, window=14):
-    delta = df['Close'].diff(1)
+    delta = df['close'].diff(1)
     gain = delta.where(delta > 0, 0)
     loss = -delta.where(delta < 0, 0)
 
@@ -17,19 +18,16 @@ def calculate_rsi(df, window=14):
 
 def generate_rsi_signals(df, buy_threshold=30, sell_threshold=70):
 
-    signals = []
-
-    for i in range(len(df)):
-        if df['RSI'][i] < buy_threshold:
-            signals.append(1)  # Buy signal
-        elif df['RSI'][i] > sell_threshold:
-            signals.append(-1)  # Sell signal
-        else:
-            signals.append(0)  # Hold signal
+    signals = calculate_rsi(df, window=14)
     
-    df['Signal'] = signals
+    # Initialize the Buy/Sell column
+    signals['Buy_Sell'] = 0
     
-    return df
+    # Generate Buy Signal (1) and Sell Signal (-1)
+    signals.loc[signals['RSI'] < buy_threshold, 'Buy_Sell'] = 1
+    signals.loc[signals['RSI'] > sell_threshold, 'Buy_Sell'] = -1
+    
+    return signals
 
 # Example usage
 # Assuming you have a DataFrame `df` with a 'Close' column containing the stock prices

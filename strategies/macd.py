@@ -19,6 +19,40 @@ def generate_macd_signals(data, short_window=12, long_window=26, signal_window=9
     signals['MACD'] = signals['EMA_short'] - signals['EMA_long']
     signals['Signal_Line'] = calculate_ema(signals['MACD'], signal_window)
     
+    # Generate buy and sell signals at crossover points
+    signals['Signal'] = 0
+    signals['Signal'][signal_window:] = np.where(
+        signals['MACD'][signal_window:] > signals['Signal_Line'][signal_window:], 1, -1
+    )
+
+
+    # Position: 1 for buy, -1 for sell, 0 for hold
+    signals['Buy_Sell'] = signals['Signal'].diff()
+
+    # Buy signal: 1, Sell signal: -1
+    # signals['Buy_Sell'] = np.where(
+    #     signals['Position'] == 1, 1,
+    #     np.where(signals['Position'] == -1, -1, 0)
+    # )
+
+    # count_ones = (signals['Signal'] == 1).sum()
+    # count_minus = (signals['Signal'] == -1).sum()
+  
+    
+    return signals
+
+def generate_macd_signals2(data, short_window=12, long_window=26, signal_window=9):
+    signals = pd.DataFrame(index=data.index)
+    signals['close'] = data['close']
+    
+    # Calculate short-term and long-term EMA
+    signals['EMA_short'] = calculate_ema(data['close'], short_window)
+    signals['EMA_long'] = calculate_ema(data['close'], long_window)
+    
+    # Calculate MACD and Signal Line
+    signals['MACD'] = signals['EMA_short'] - signals['EMA_long']
+    signals['Signal_Line'] = calculate_ema(signals['MACD'], signal_window)
+    
     # Generate buy and sell signals
     signals['Signal'] = 0
     signals['Signal'][signal_window:] = np.where(
@@ -32,8 +66,8 @@ def generate_macd_signals(data, short_window=12, long_window=26, signal_window=9
         np.where(signals['Position'] == -1, -1, 0)
     )
 
-    count_ones = (signals['Signal'] == 1).sum()
-    count_minus = (signals['Signal'] == -1).sum()
+    # count_ones = (signals['Signal'] == 1).sum()
+    # count_minus = (signals['Signal'] == -1).sum()
 
     
     return signals

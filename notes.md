@@ -1,4 +1,6 @@
 Today's Tasks
+--------------
+
 1. Finalize MACD 
 2. Finalize RSI 
 3. Optimization
