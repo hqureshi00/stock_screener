@@ -1,48 +1,37 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot_rsi(stock_data, buy_threshold=30, sell_threshold=70):
 
-  key_small = f'{buy_threshold}'
-  key_large = f'{buy_threshold}'
-
- 
-  plt.figure(figsize=(14, 7))
-  df = pd.DataFrame(stock_data)
-  df['timestamp'] = pd.to_datetime(df['timestamp'])
-  df.set_index('timestamp', inplace=True)
-
-  df.dropna(subset=['close', key_small, key_large], inplace=True)
-    
-  df['index'] = range(len(df))
+def plot_rsi(data, buy_threshold=30, sell_threshold=70):
   
-  plt.plot(df['index'], df['close'], label='Close Price')
-#   plt.plot(df['index'], df[key_small], label='Buy threshold')
-#   plt.plot(df['index'], df[key_large], label='Sell Threshold')
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
-  plt.plot(df.loc[df['Signal'] == 1.0]['index'], 
-             df[key_small][df['Signal'] == 1.0], 
-             '^', markersize=10, color='g', label='Buy Signal')
+    # Plot Close Prices
+    ax1.plot(data.index, data['close'], color='blue', label='Close Price')
 
-  for i in df.loc[df['Signal'] == 1.0]['index']:
-        plt.text(i, df['close'][df['index'] == i].values[0], f'{df["close"][df["index"] == i].values[0]:.2f}', fontsize=9, ha='center', color='g', va='bottom')
+    # Plot Buy Signals
+    buy_signals = data[data['Signal'] == 1]
+    ax1.plot(buy_signals.index, buy_signals['close'], '^', markersize=10, color='green', label='Buy Signal', lw=0)
 
-  plt.plot(df.loc[df['Signal'] == -1.0]['index'], 
-             df[key_small][df['Signal'] == -1.0], 
-             'v', markersize=10, color='r', label='Sell Signal')
+    # Plot Sell Signals
+    sell_signals = data[data['Signal'] == -1]
+    ax1.plot(sell_signals.index, sell_signals['close'], 'v', markersize=10, color='red', label='Sell Signal', lw=0)
 
-  for i in df.loc[df['Signal'] == -1.0]['index']:
-        plt.text(i, df['close'][df['index'] == i].values[0], f'{df["close"][df["index"] == i].values[0]:.2f}', fontsize=9, ha='center', color='r', va='bottom')
+    ax1.set_title('Close Prices with Buy/Sell Signals')
+    ax1.set_ylabel('Price')
+    ax1.legend(loc='upper left')
+    ax1.grid(True)
 
-  plt.title('Stock Price with Buy and Sell Signals')
-  plt.xlabel('Date')
-  plt.ylabel('Price')
-  plt.legend()
-  plt.grid(True)
+    # Plot RSI
+    ax2.plot(data.index, data['RSI'], color='red', label='RSI')
+    ax2.axhline(sell_threshold, color='gray', linestyle='--', label='Overbought (70)')
+    ax2.axhline(buy_threshold, color='gray', linestyle='--', label='Oversold (30)')
+    ax2.set_title('Relative Strength Index (RSI)')
+    ax2.set_ylabel('RSI Value')
+    ax2.set_xlabel('Date')
+    ax2.legend(loc='upper left')
+    ax2.grid(True)
 
-  n = max(1, len(df) // 10)  
-  plt.xticks(ticks=df['index'][::n], labels=[date.strftime('%Y-%m-%d') for date in df.index][::n], rotation=45)
+    plt.tight_layout()
+    plt.show()
 
-  plt.tight_layout()
-  plt.tight_layout()
-  plt.show()
