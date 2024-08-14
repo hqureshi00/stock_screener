@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 def plot_moving_average_crossover(stock_data, small=7, long=14):
+  
+  fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
   key_small = f'SMA_{small}'
   key_large = f'SMA_{long}'
@@ -17,23 +19,25 @@ def plot_moving_average_crossover(stock_data, small=7, long=14):
     
   df['index'] = range(len(df))
 
-  plt.plot(df['index'], df['close'], label='Close Price')
-  plt.plot(df['index'], df[key_small], label=label1)
-  plt.plot(df['index'], df[key_large], label=label2)
+# Plot Close Prices
+  ax1.plot(df.index, df['close'], color='blue', label='Close Price')
+#   plt.plot(df['index'], df['close'], label='Close Price')
+  ax2.plot(df['index'], df[key_small], label=label1)
+  ax2.plot(df['index'], df[key_large], label=label2)
 
-  plt.plot(df.loc[df['Signal'] == 1.0]['index'], 
+  ax1.plot(df.loc[df['Signal'] == 1.0]['index'], 
              df[key_small][df['Signal'] == 1.0], 
              '^', markersize=10, color='g', label='Buy Signal')
 
   for i in df.loc[df['Signal'] == 1.0]['index']:
-        plt.text(i, df['close'][df['index'] == i].values[0], f'{df["close"][df["index"] == i].values[0]:.2f}', fontsize=9, ha='center', color='g', va='bottom')
+        ax1.text(i, df['close'][df['index'] == i].values[0], f'{df["close"][df["index"] == i].values[0]:.2f}', fontsize=9, ha='center', color='g', va='bottom')
 
-  plt.plot(df.loc[df['Signal'] == -1.0]['index'], 
+  ax1.plot(df.loc[df['Signal'] == -1.0]['index'], 
              df[key_small][df['Signal'] == -1.0], 
              'v', markersize=10, color='r', label='Sell Signal')
 
   for i in df.loc[df['Signal'] == -1.0]['index']:
-        plt.text(i, df['close'][df['index'] == i].values[0], f'{df["close"][df["index"] == i].values[0]:.2f}', fontsize=9, ha='center', color='r', va='bottom')
+        ax1.text(i, df['close'][df['index'] == i].values[0], f'{df["close"][df["index"] == i].values[0]:.2f}', fontsize=9, ha='center', color='r', va='bottom')
 
   plt.title('Stock Price with Buy and Sell Signals')
   plt.xlabel('Date')

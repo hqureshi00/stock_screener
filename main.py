@@ -1,6 +1,6 @@
 from utils import fetch_stock_data, simulate_trades
 from utils.plotting.plot_ma_crossover import plot_moving_average_crossover
-from strategies.ma_crossover import crossover_signal_with_slope, crossover_signal
+from strategies.ma_crossover import crossover_signal_with_slope, crossover_signal, moving_average_crossover_signals
 from strategies.ema import ema_strategy
 from utils.plotting.plot_ema import plot_ema
 from utils.plotting.plot_macd import plot_macd
@@ -37,7 +37,7 @@ def main():
   parser.add_argument(
       "strategy", 
       type=str, 
-      choices=["MACrossOver", "MACD", "EMA", "RSI"], 
+      choices=["MACrossover", "MACD", "EMA", "RSI"], 
       help="The trading strategy to apply. Options: 'MA CrossOver', 'MACD', 'EMA'"
   )
 
@@ -56,10 +56,10 @@ def main():
   stock, start_date, end_date, interval, strategy_name = args.stock, args.start_date, args.end_date, args.interval, args.strategy
   stock_data = fetch_stock_data(stock, interval, start_date, end_date)
  
-  if strategy_name == 'MACrossOver':
-    signals = crossover_signal_with_slope(stock_data)
-    stock_data['Signal'] = signals['Signal']
-    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)  
+  if strategy_name == 'MACrossover':
+    signals = moving_average_crossover_signals(stock_data)
+    stock_data['Signal'] = signals['Buy_Sell']
+    tr, ex_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)  
     plot_moving_average_crossover(stock_data)
 
   elif strategy_name == 'EMA':
@@ -67,16 +67,22 @@ def main():
     stock_data['Signal'] = signals['Buy_Sell']
     stock_data['EMA_short'] = signals['EMA_short']
     stock_data['EMA_long'] = signals['EMA_long']
-    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-    plot_ema(stock_data, small=7, long=14) 
+    tr, ex_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+    plot_ema(ex_signals, small=7, long=14) 
 
   elif strategy_name == 'MACD':
     signals = generate_macd_signals(stock_data)
     stock_data['Signal'] = signals['Buy_Sell']
     stock_data['MACD'] = signals['MACD']
     stock_data['Signal_Line'] = signals['Signal_Line']
-    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-    plot_macd(stock_data)
+    tr, ex_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+    plot_macd(ex_signals)
+
+  elif strategy_name == 'RSI':
+    signals = generate_rsi_signals(stock_data)
+    stock_data['Signal'] = signals['Buy_Sell']
+    tr, ex_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+    plot_rsi(ex_signals)
 
 
   # elif strategy_name == 'CandlestickPatterns':
@@ -89,11 +95,7 @@ def main():
   #   stock_data['Signal'] = signals['Signal']
   #   simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
 
-  elif strategy_name == 'RSI':
-    signals = generate_rsi_signals(stock_data)
-    stock_data['Signal'] = signals['Buy_Sell']
-    simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-    plot_rsi(stock_data)
+
   
 
 if __name__ == "__main__":
