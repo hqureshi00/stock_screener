@@ -1,6 +1,7 @@
 from utils import fetch_stock_data, simulate_trades
 from utils.plotting.plot_ma_crossover import plot_moving_average_crossover
-from strategies.ma_crossover import crossover_signal_with_slope, crossover_signal, moving_average_crossover_signals
+from utils.benchmarking_scripts.benchmark_strategies import moving_crossover_benchmark
+from strategies.ma_crossover import crossover_signal, crossover_signal_with_slope
 from strategies.ema import ema_strategy
 from utils.plotting.plot_ema import plot_ema
 from utils.plotting.plot_macd import plot_macd
@@ -49,6 +50,12 @@ def main():
         required=True,
         help="The interval for the data. Options: '1min', '5min', '15min', '30min'. Default is '1min'."
     )
+  
+  parser.add_argument(
+    "--benchmark", 
+    action="store_true", 
+    help="Run the benchmark function instead of the normal functionality."
+)
 
 
   args = parser.parse_args()
@@ -57,32 +64,42 @@ def main():
   stock_data = fetch_stock_data(stock, interval, start_date, end_date)
  
   if strategy_name == 'MACrossover':
-    signals = moving_average_crossover_signals(stock_data)
-    stock_data['Signal'] = signals['Buy_Sell']
-    tr, ex_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)  
-    plot_moving_average_crossover(stock_data)
+    if args.benchmark:
+      moving_crossover_benchmark(stock_data, start_date, end_date, stock, strategy_name, interval)
+    else:
+      signals = crossover_signal(stock_data)
+      stock_data['Signal'] = signals['Buy_Sell']
+      total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+      plot_moving_average_crossover(stock_data)
 
   elif strategy_name == 'EMA':
-    signals = ema_strategy(stock_data)
-    stock_data['Signal'] = signals['Buy_Sell']
-    stock_data['EMA_short'] = signals['EMA_short']
-    stock_data['EMA_long'] = signals['EMA_long']
-    tr, ex_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-    plot_ema(ex_signals, small=7, long=14) 
+    if args.benchmark:
+      moving_crossover_benchmark(stock_data, start_date, end_date, stock, strategy_name, interval)
+    else:
+      signals = ema_strategy(stock_data)
+      stock_data['Signal'] = signals['Buy_Sell']
+      stock_data['EMA_short'] = signals['EMA_short']
+      stock_data['EMA_long'] = signals['EMA_long']
+      total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+      plot_ema(executed_signals, small=7, long=14) 
+
+  elif strategy_name == 'RSI':
+    if args.benchmark:
+      pass
+    else:
+      signals = generate_rsi_signals(stock_data)
+      stock_data['Signal'] = signals['Buy_Sell']
+      total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+      plot_rsi(executed_signals)
 
   elif strategy_name == 'MACD':
     signals = generate_macd_signals(stock_data)
     stock_data['Signal'] = signals['Buy_Sell']
     stock_data['MACD'] = signals['MACD']
     stock_data['Signal_Line'] = signals['Signal_Line']
-    tr, ex_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-    plot_macd(ex_signals)
+    total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+    plot_macd(executed_signals)
 
-  elif strategy_name == 'RSI':
-    signals = generate_rsi_signals(stock_data)
-    stock_data['Signal'] = signals['Buy_Sell']
-    tr, ex_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-    plot_rsi(ex_signals)
 
 
   # elif strategy_name == 'CandlestickPatterns':

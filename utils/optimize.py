@@ -1,7 +1,7 @@
 import pandas as pd
 from .fetch_stock_data import fetch_stock_data
 from .simulate_trades import simulate_trades
-from strategies.ma_crossover import crossover_signal_with_slope, crossover_signal
+from strategies.ma_crossover import crossover_signal
 
 def optimize_ema_parameters():
     pass
@@ -33,7 +33,7 @@ def optimize_ma_crossover_parameters(data, interval, stock_name, start_date, end
             if small_win >= long_win:
                 continue  # Skip invalid combinations where small window is not less than long window
 
-            signals = crossover_signal_with_slope(data.copy(), small_win, long_win)
+            signals = crossover_signal(data.copy(), small_win, long_win)
             data_with_signals = data.copy()
             data_with_signals['Signal'] = signals['Signal']
 

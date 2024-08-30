@@ -1,6 +1,6 @@
 # strategies/__init__.py
 
-from .ma_crossover import crossover_signal, crossover_signal_with_slope, moving_average_crossover_signals
+from .ma_crossover import crossover_signal, crossover_signal_with_slope
 from .ema import ema_strategy
 from .macd import generate_macd_signals
 from .rsi import generate_rsi_signals
@@ -9,7 +9,7 @@ from .bollinger_bands import generate_bb_signals
 
 __all__ = ['crossover_signal',
            'crossover_signal_with_slope',
-           'moving_average_crossover_signals'
+          #  'moving_average_crossover_signals'
            'ema_strategy',
            'generate_macd_signals',
            'generate_rsi_signals',

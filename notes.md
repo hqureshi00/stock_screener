@@ -1,3 +1,44 @@
+## TODOthings 
+
+1. pre-capture data again for capturing things
+2. change the strategy for MACrossOver
+3. So on for other strategies and create tables + graphical structures
+
+
+1. Test for Moving Average Crossover - table + graph of heatmap
+2. Test for EMA - table + graph of heatmap
+3. Test for RSI - table + graph of heatmap
+4. Test for RSI + MA Crossover
+5. Test for RSI + EMA CrossOver
+6. Test for EMA + MA
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Today's Tasks
 --------------
 

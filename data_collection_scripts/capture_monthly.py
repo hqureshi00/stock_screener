@@ -3,6 +3,17 @@ import pandas as pd
 import time
 import os
 
+def load_progress(progress_file):
+    if os.path.exists(progress_file):
+        with open(progress_file, 'r') as f:
+            last_progress = f.readline().strip().split(',')
+            return last_progress if last_progress else None
+    return None
+
+def save_progress(stock, interval, month, year, progress_file):
+    with open(progress_file, 'w') as f:
+        f.write(f'{stock},{interval},{month},{year}')
+
 def get_data_from_url(stock, month, year, interval):
   # Step 1: Capture JSON data from a URL
   url = f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={stock}&interval={interval}&apikey=HXA9JB1IU4NTPEND&month={year}-{month}&outputsize=full'  # Replace with your URL
@@ -79,7 +90,7 @@ def generate_month_year_combinations(start_month, start_year, end_month, end_yea
 def main():
   start_month = '05'
   start_year = '2014'
-  end_month = '06'
+  end_month = '08'
   end_year = '2024'
   stocks = ['NVDA', 'MSFT', 'AAPL', 'GOOG', 'NFLX', 'TSLA']
   # stocks = ['NVDA', 'MSFT']

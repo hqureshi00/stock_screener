@@ -1,84 +1,75 @@
 import pandas as pd
 import numpy as np
+import pdb
+from sklearn.linear_model import LinearRegression
 
 
-def moving_average_crossover_signals(data, short_window=7, long_window=14):
-   
-    # Create short-term and long-term SMAs
-    data[f'SMA_{short_window}'] = data['close'].rolling(window=short_window, min_periods=1).mean()
-    data[f'SMA_{long_window}'] = data['close'].rolling(window=long_window, min_periods=1).mean()
+def calculate_slope(series, window=5):
+    """
+    Calculate the slope of a series using the difference between the end and start of the window.
+    """
+    slopes = pd.Series(index=series.index, dtype=float)
+    for i in range(window - 1, len(series)):
+        start_value = series.iloc[i-window+1]
+        end_value = series.iloc[i]
+        slopes.iloc[i] = end_value - start_value
+    return slopes
 
-    # Initialize the Signal column
-    data['Signal'] = 0  # 0 means no position, 1 means buy, -1 means sell
-
-    # Generate Buy (1) and Sell (-1) signals
-    data['Signal'][short_window:] = np.where(
-        data[f'SMA_{short_window}'][short_window:] > data[f'SMA_{long_window}'][short_window:], 1, -1
-    )
-
-    # Calculate position by taking the difference between consecutive signals
-    data['Buy_Sell'] = data['Signal'].diff()
-
-    return data
-
-def crossover_signal_with_slope(data, small_win=3, long_win=5):
-
+def crossover_signal_with_slope(data, small_win=7, long_win=14, slope_window=5):
     key_small = f'SMA_{small_win}'
     key_large = f'SMA_{long_win}'
 
-    # Calculate the moving averages
-    data[key_small] = data['close'].rolling(window=int(small_win)).mean()
-    data[key_large] = data['close'].rolling(window=int(long_win)).mean()
+    # Calculate Simple Moving Averages
+    data[key_small] = calculate_sma(data['close'], window=small_win)  # Fast MA
+    data[key_large] = calculate_sma(data['close'], window=long_win)  # Slow MA
 
-    # Calculate the slope of the smaller moving average
-    data['Slope'] = data[key_small].diff()
+    # Calculate slopes of the SMAs
+    data[f'Slope_{small_win}'] = calculate_slope(data[key_small], window=slope_window)
+    data[f'Slope_{long_win}'] = calculate_slope(data[key_large], window=slope_window)
 
-    signals = pd.DataFrame(index=data.index)
-    signals['Signal'] = 0.0
+    # Generate Buy/Sell signals based on MA crossovers and slopes
+    buy_signal = (
+        (data[key_small] > data[key_large]) &
+        (data[key_small].shift(1) <= data[key_large].shift(1)) &
+        (data[f'Slope_{small_win}'] > 0) &  # Fast MA should be trending up
+        (data[f'Slope_{long_win}'] > 0)    # Slow MA should be trending up
+    )
+    
+    sell_signal = (
+        (data[key_small] < data[key_large]) &
+        (data[key_small].shift(1) >= data[key_large].shift(1)) &
+        (data[f'Slope_{small_win}'] < 0) &  # Fast MA should be trending down
+        (data[f'Slope_{long_win}'] < 0)    # Slow MA should be trending down
+    )
 
-    # Initialize Signals column in the original data
-    data['Signals'] = 0
+    # Initialize Buy_Sell column
+    data['Buy_Sell'] = 0
+    data.loc[buy_signal, 'Buy_Sell'] = 1
+    data.loc[sell_signal, 'Buy_Sell'] = -1
 
-    # Generate signals based on crossover and slope condition
-    # Point to Discuss
-    # for i in range(int(small_win), len(data)):
-    #     if (data[key_small].iloc[i] > data[key_large].iloc[i]) and data['Slope'].iloc[i] > 0:
-    #         data['Signals'].iloc[i] = 1
-    #     elif (data[key_small].iloc[i] < data[key_large].iloc[i]) and data['Slope'].iloc[i] < 0:
-    #         data['Signals'].iloc[i] = -1
-    #     else:
-    #         data['Signals'].iloc[i] = 0
+    return data
 
-    # for i in range(int(small_win), len(data)):
-    #     if data[key_small].iloc[i] > data[key_large].iloc[i]:
-    #         data['Signals'].iloc[i] = 1
-    #     elif data[key_small].iloc[i] < data[key_large].iloc[i]:
-    #         data['Signals'].iloc[i] = -1
-    #     else:
-    #         data['Signals'].iloc[i] = 0
-
-    # Calculate the signal changes (1 for buy, -1 for sell)
-    # signals['Signal'] = data['Signals'].diff()
-
-    return signals
-
-#TODO: Why does slope greater than zero work?
+def calculate_sma(data, window):
+    sma = data.rolling(window=window).mean()
+    return sma
 
 def crossover_signal(data, small_win=7, long_win=14):
 
     key_small = f'SMA_{small_win}'
     key_large = f'SMA_{long_win}'
-  
-    data[key_small] = data['close'].rolling(window=int(small_win)).mean()
-    data[key_large] = data['close'].rolling(window=int(long_win)).mean()
 
-    signals = pd.DataFrame(index=data.index)
-    signals['Signal'] = 0.0
-    
-    data['Signals'] = 0
+    data[key_small] = calculate_sma(data['close'], window=small_win)  # Fast MA (e.g., 5-day)
+    data[key_large] = calculate_sma(data['close'], window=long_win) # Slow MA (e.g., 10-day)
 
-    data['Signals'][int(small_win):] = np.where(data[key_small][int(small_win):] > data[key_large][int(small_win):], 1, 0)
+    buy_signal = (data[key_small] > data[key_large]) & (data[key_small].shift(1) <= data[key_large].shift(1))
+    sell_signal = (data[key_small] < data[key_large]) & (data[key_small].shift(1) >= data[key_large].shift(1))
 
-    signals['Signal'] = data['Signals'].diff()
+    data['Buy_Sell'] = 0  # Initialize the column with zeros
+    data.loc[buy_signal, 'Buy_Sell'] = 1
+    data.loc[sell_signal, 'Buy_Sell'] = -1
 
-    return signals
+    # count_ones = (data['Buy_Sell'] == 1).sum()
+    # count_minus = (data['Buy_Sell'] == -1).sum()
+
+    return data
+

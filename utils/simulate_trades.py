@@ -82,14 +82,18 @@ def simulate_trades(stock_data, strategy_name, interval, stock_name, start_date,
 
     if trades_df.empty:
         print("No trades")
+        return None
     else:
         final_cash_balance = trades_df['cash_balance'].iloc[-1]
-        print(f"Final Profit: ${final_cash_balance - initial_cash}")
+        total_profit = final_cash_balance - initial_cash
+        print(f"Final Profit: ${total_profit}")
+        executed_signals = executed_signals[executed_signals['Executed_Buy_Sell'] != 0]
+        return total_profit, executed_signals
 
     # Filter out rows where no trade was executed
-    executed_signals = executed_signals[executed_signals['Executed_Buy_Sell'] != 0]
+    # executed_signals = executed_signals[executed_signals['Executed_Buy_Sell'] != 0]
 
-    return trades_df, executed_signals
+    # return executed_signals
 
 def simulate_trades_old(stock_data, strategy_name, interval, stock_name, start_date, end_date, borrow_rate=0.01, initial_cash=10000):
     
@@ -171,5 +175,4 @@ def simulate_trades_old(stock_data, strategy_name, interval, stock_name, start_d
         final_cash_balance = trades_df['cash_balance'].iloc[-1]
         print(f"Final Profit: ${final_cash_balance - initial_cash}")
 
-    return trades_df
   

@@ -25,19 +25,8 @@ def generate_macd_signals(data, short_window=12, long_window=26, signal_window=9
         signals['MACD'][signal_window:] > signals['Signal_Line'][signal_window:], 1, -1
     )
 
-
     # Position: 1 for buy, -1 for sell, 0 for hold
     signals['Buy_Sell'] = signals['Signal'].diff()
-
-    # Buy signal: 1, Sell signal: -1
-    # signals['Buy_Sell'] = np.where(
-    #     signals['Position'] == 1, 1,
-    #     np.where(signals['Position'] == -1, -1, 0)
-    # )
-
-    # count_ones = (signals['Signal'] == 1).sum()
-    # count_minus = (signals['Signal'] == -1).sum()
-  
     
     return signals
 
