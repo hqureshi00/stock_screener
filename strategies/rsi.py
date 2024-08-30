@@ -18,7 +18,10 @@ def calculate_rsi(df, window=14):
 
 def generate_rsi_signals(df, buy_threshold=30, sell_threshold=70):
     # Calculate RSI
-    signals = calculate_rsi(df, window=14)
+    signals = calculate_rsi(df, window=14).copy()
+    
+    # Reset the index to avoid issues with duplicates
+    signals.reset_index(drop=True, inplace=True)
     
     # Initialize the Signal column
     signals['Signal'] = 0
@@ -32,11 +35,9 @@ def generate_rsi_signals(df, buy_threshold=30, sell_threshold=70):
     
     # Check the previous value to determine Buy or Sell action
     for i in range(1, len(signals)):
-        # If the current signal is Buy (1) and the previous signal was not Buy (0 or -1)
-        if signals.loc[i, 'Signal'] == 1 and signals.loc[i - 1, 'Signal'] != 1:
+        if signals.iloc[i]['Signal'] == 1 and signals.iloc[i - 1]['Signal'] != 1:
             signals.loc[i, 'Buy_Sell'] = 1
-        # If the current signal is Sell (-1) and the previous signal was not Sell (0 or 1)
-        elif signals.loc[i, 'Signal'] == -1 and signals.loc[i - 1, 'Signal'] != -1:
+        elif signals.iloc[i]['Signal'] == -1 and signals.iloc[i - 1]['Signal'] != -1:
             signals.loc[i, 'Buy_Sell'] = -1
     
     return signals

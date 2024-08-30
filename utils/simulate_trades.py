@@ -1,11 +1,10 @@
 import pandas as pd
 import os
+import pdb
 
-import os
-import pandas as pd
 
 def simulate_trades(stock_data, strategy_name, interval, stock_name, start_date, end_date, borrow_rate=0.01, initial_cash=10000):
-    
+
     trades = []
     position = None
     file_name = f'{stock_name}_{interval}_{strategy_name}_{start_date}_{end_date}.csv'
@@ -81,22 +80,15 @@ def simulate_trades(stock_data, strategy_name, interval, stock_name, start_date,
     trades_df.to_csv(file_path, index=False)
 
     if trades_df.empty:
-        print("No trades")
-        return None
+        return None, pd.DataFrame()
     else:
         final_cash_balance = trades_df['cash_balance'].iloc[-1]
         total_profit = final_cash_balance - initial_cash
         print(f"Final Profit: ${total_profit}")
-        executed_signals = executed_signals[executed_signals['Executed_Buy_Sell'] != 0]
-        return total_profit, executed_signals
-
-    # Filter out rows where no trade was executed
-    # executed_signals = executed_signals[executed_signals['Executed_Buy_Sell'] != 0]
-
-    # return executed_signals
+        # executed_signals = executed_signals[executed_signals['Executed_Buy_Sell'] != 0]
+        return total_profit, stock_data
 
 def simulate_trades_old(stock_data, strategy_name, interval, stock_name, start_date, end_date, borrow_rate=0.01, initial_cash=10000):
-    
     trades = []
     position = None
     file_name = f'{stock_name}_{interval}_{strategy_name}_{start_date}_{end_date}.csv'

@@ -56,8 +56,7 @@ def main():
     action="store_true", 
     help="Run the benchmark function instead of the normal functionality."
 )
-
-
+  
   args = parser.parse_args()
 
   stock, start_date, end_date, interval, strategy_name = args.stock, args.start_date, args.end_date, args.interval, args.strategy
@@ -67,21 +66,27 @@ def main():
     if args.benchmark:
       moving_crossover_benchmark(stock_data, start_date, end_date, stock, strategy_name, interval)
     else:
-      signals = crossover_signal(stock_data)
+      signals = crossover_signal(stock_data, small_win=7, long_win=14)
       stock_data['Signal'] = signals['Buy_Sell']
       total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-      plot_moving_average_crossover(stock_data)
+      if executed_signals.empty:
+        plot_moving_average_crossover(stock_data, small=7, large=14)
+      else:
+        print("No trades")
 
   elif strategy_name == 'EMA':
     if args.benchmark:
       moving_crossover_benchmark(stock_data, start_date, end_date, stock, strategy_name, interval)
     else:
-      signals = ema_strategy(stock_data)
+      signals = ema_strategy(stock_data, short_window=7, long_window=14)
       stock_data['Signal'] = signals['Buy_Sell']
       stock_data['EMA_short'] = signals['EMA_short']
       stock_data['EMA_long'] = signals['EMA_long']
       total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-      plot_ema(executed_signals, small=7, long=14) 
+      if executed_signals.empty:
+        plot_ema(executed_signals, small=7, long=14) 
+      else:
+        print("No trades")
 
   elif strategy_name == 'RSI':
     if args.benchmark:
@@ -90,7 +95,11 @@ def main():
       signals = generate_rsi_signals(stock_data)
       stock_data['Signal'] = signals['Buy_Sell']
       total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-      plot_rsi(executed_signals)
+      if executed_signals.empty:
+        print("No trades")
+        plot_ema(executed_signals, small=7, long=14) 
+      else:
+        print("No trades")
 
   elif strategy_name == 'MACD':
     signals = generate_macd_signals(stock_data)

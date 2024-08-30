@@ -6,25 +6,28 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime
+import pdb
 
 def save_moving_crossover_as_csv(sorted_results_df, start_date, end_date, stock_name, strategy_name, interval, parameter_range):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_name = f'{start_date}_{end_date}_{stock_name}_{interval}_{parameter_range}_{strategy_name}_{timestamp}'
+    file_name = f'{start_date}_{end_date}_{stock_name}_{interval}_{parameter_range}_{strategy_name}_{timestamp}.csv'
 
-    folder_name = f'benchmarking_scripts/test_runs'
-    file_path = os.path.join(folder_name, file_name)
-
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
+    folder_name = 'test_runs'  # Now it's a subdirectory under the current script's directory
+    file_path = os.path.join(os.path.dirname(__file__), folder_name, file_name)  # Save in a subdirectory within the same folder as the script
     
-    sorted_results_df.to_csv(file_path, index=False)
+    if not os.path.exists(os.path.dirname(file_path)):
+        os.makedirs(os.path.dirname(file_path))
+        
+    try:
+        sorted_results_df.to_csv(file_path, index=False)
+        print(f"File saved successfully at {file_path}")
+    except Exception as e:
+        print(f"Failed to save file: {e}")
 
 
 def plot_moving_crossover_heatmap(sorted_results_df, key_names, xlabel, ylabel, title):
     plt.figure(figsize=(12, 6))
-
     # Create a heatmap to visualize the profit for different fast and slow window combinations
-    # pivot_table = sorted_results_df.pivot(index="fast_window", columns="slow_window", values="total_profit")
     pivot_table = sorted_results_df.pivot(index=key_names[0], columns=key_names[1], values="total_profit")
     sns.heatmap(pivot_table, annot=True, fmt=".1f", cmap="YlGnBu", annot_kws={"fontsize": 5})
 
@@ -34,12 +37,17 @@ def plot_moving_crossover_heatmap(sorted_results_df, key_names, xlabel, ylabel, 
     plt.show()
 
 def moving_crossover_benchmark(data, start_date, end_date, stock_name, strategy_name, interval):
-    if strategy_name == 'MACrossOver':
-        parameter1 = [i for i in range(5,16)] #fast window
-        parameter2 = [i for i in range(15, 46)] #slow window
+    parameter1, parameter2 = [], []
+    parameter_range = ''
+    key_names = ()
+    title, xlabel, ylabel = '', '', ''
+    
+
+    if strategy_name == 'MACrossover':
+        parameter1 = [i for i in range(5,21)] #fast window
+        parameter2 = [i for i in range(20, 51)] #slow window
         parameter_range = f'_fast_{parameter1[0]}_{parameter1[-1]}_slow_{parameter2[0]}_{parameter2[-1]}'
         key_names = ('fast_window', 'slow_window')
-        plt.title('Total Profit for Different Moving Average Combinations')
 
         title = 'Total Profit for Different Moving Average Combinations'
         xlabel = 'Slow Moving Average Window'
