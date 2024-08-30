@@ -1,9 +1,9 @@
 from utils import fetch_stock_data, simulate_trades
-from utils.plotting.plot_ma_crossover import plot_moving_average_crossover
 from utils.benchmarking_scripts.benchmark_strategies import moving_crossover_benchmark
 from strategies.ma_crossover import crossover_signal, crossover_signal_with_slope
 from strategies.ema import ema_strategy
-from utils.plotting.plot_ema import plot_ema
+from utils.plotting.plot_ma_crossover import plot_moving_average_crossover, plot_moving_average_crossover_plotly
+from utils.plotting.plot_ema import plot_ema, plot_ema_plotly
 from utils.plotting.plot_macd import plot_macd
 from utils.plotting.plot_rsi import plot_rsi
 from strategies.macd import generate_macd_signals
@@ -70,9 +70,9 @@ def main():
       stock_data['Signal'] = signals['Buy_Sell']
       total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
       if executed_signals.empty:
-        plot_moving_average_crossover(stock_data, small=7, large=14)
-      else:
         print("No trades")
+      else:
+        plot_moving_average_crossover_plotly(stock_data, small=7, large=14)
 
   elif strategy_name == 'EMA':
     if args.benchmark:
@@ -84,22 +84,22 @@ def main():
       stock_data['EMA_long'] = signals['EMA_long']
       total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
       if executed_signals.empty:
-        plot_ema(executed_signals, small=7, long=14) 
-      else:
         print("No trades")
+      else:
+        plot_ema_plotly(executed_signals, small=7, long=14) 
 
   elif strategy_name == 'RSI':
     if args.benchmark:
       pass
     else:
-      signals = generate_rsi_signals(stock_data)
+      signals = generate_rsi_signals(stock_data, buy_threshold=30, sell_threshold=70)
       stock_data['Signal'] = signals['Buy_Sell']
       total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
       if executed_signals.empty:
         print("No trades")
-        plot_ema(executed_signals, small=7, long=14) 
+
       else:
-        print("No trades")
+        plot_rsi(executed_signals, buy_threshold=30, sell_threshold=70)
 
   elif strategy_name == 'MACD':
     signals = generate_macd_signals(stock_data)
