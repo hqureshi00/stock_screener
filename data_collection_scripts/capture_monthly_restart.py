@@ -62,7 +62,7 @@ def convert_to_dataframe(json_data):
 
 def save_to_csv(df, month, year, timeframe, stock):
   csv_filename = f'{stock}-{timeframe}-{month}-{year}.csv'
-  folder_name = f'data/{stock}'
+  folder_name = f'data_test/{stock}'
   file_path = os.path.join(folder_name, csv_filename)
 
   if not os.path.exists(folder_name):

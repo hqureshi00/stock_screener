@@ -50,7 +50,8 @@ def fetch_stock_data(stock_name, interval, start_date, end_date):
  
     filtered_data = all_data[(all_data['timestamp'] >= start_date) & (all_data['timestamp'] <= end_date)]
    
-    filtered_data['timestamp'] = pd.to_datetime(filtered_data['timestamp'])
+    # filtered_data['timestamp'] = pd.to_datetime(filtered_data['timestamp'])
+    filtered_data.loc[:, 'timestamp'] = pd.to_datetime(filtered_data['timestamp'])
     filtered_data_sorted = filtered_data.sort_values(by='timestamp')
 
     return filtered_data_sorted

@@ -1,5 +1,5 @@
 from utils import fetch_stock_data, simulate_trades
-from utils.benchmarking_scripts.benchmark_strategies import moving_crossover_benchmark
+from utils.benchmarking_scripts.benchmark_strategies import benchmark_strategy
 from strategies.ma_crossover import crossover_signal, crossover_signal_with_slope
 from strategies.ema import ema_strategy
 from utils.plotting.plot_ma_crossover import plot_moving_average_crossover, plot_moving_average_crossover_plotly
@@ -64,7 +64,7 @@ def main():
  
   if strategy_name == 'MACrossover':
     if args.benchmark:
-      moving_crossover_benchmark(stock_data, start_date, end_date, stock, strategy_name, interval)
+      benchmark_strategy(stock_data, start_date, end_date, stock, strategy_name, interval)
     else:
       signals = crossover_signal(stock_data, small_win=7, long_win=14)
       stock_data['Signal'] = signals['Buy_Sell']
@@ -76,7 +76,7 @@ def main():
 
   elif strategy_name == 'EMA':
     if args.benchmark:
-      moving_crossover_benchmark(stock_data, start_date, end_date, stock, strategy_name, interval)
+      benchmark_strategy(stock_data, start_date, end_date, stock, strategy_name, interval)
     else:
       signals = ema_strategy(stock_data, short_window=7, long_window=14)
       stock_data['Signal'] = signals['Buy_Sell']
@@ -90,7 +90,7 @@ def main():
 
   elif strategy_name == 'RSI':
     if args.benchmark:
-      pass
+      benchmark_strategy(stock_data, start_date, end_date, stock, strategy_name, interval)
     else:
       signals = generate_rsi_signals(stock_data, buy_threshold=30, sell_threshold=70)
       stock_data['Signal'] = signals['Buy_Sell']

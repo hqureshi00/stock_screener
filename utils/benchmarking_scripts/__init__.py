@@ -1,6 +1,6 @@
-from .benchmark_strategies import moving_crossover_benchmark
+from .benchmark_strategies import benchmark_strategy
 
 
 __all__ = [
-    'moving_crossover_benchmark',
+    'benchmark_strategy',
 ]

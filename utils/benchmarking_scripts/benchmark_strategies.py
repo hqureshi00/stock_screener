@@ -36,12 +36,104 @@ def plot_moving_crossover_heatmap(sorted_results_df, key_names, xlabel, ylabel, 
     plt.ylabel(ylabel)
     plt.show()
 
-def moving_crossover_benchmark(data, start_date, end_date, stock_name, strategy_name, interval):
+def get_results(data, start_date, end_date, stock_name, strategy_name, interval, parameter1, parameter2, key_names):
+    results = []
+    for par1 in parameter1:
+        for par2 in parameter2:
+            if par1 >= par2:
+                continue  # Skip invalid combinations where fast window >= slow window
+            
+            # Apply the moving crossover strategy
+            if strategy_name == 'MACrossover' or strategy_name == 'EMA':
+                data_with_signals = crossover_signal(data.copy(), par1, par2)
+            elif strategy_name == 'RSI':
+                data_with_signals = generate_rsi_signals(data.copy(), par1, par2)
+            data['Signal'] = data_with_signals['Buy_Sell']
+            
+            # Simulate the trades and calculate profit
+            total_profit, executed_signals = simulate_trades(data, strategy_name, interval, stock_name, start_date, end_date) 
+            # breakpoint()
+            # Store the results
+            results.append({
+                key_names[0]: par1,
+                key_names[1]: par2,
+                'total_profit': total_profit,
+            })
+
+    results_df = pd.DataFrame(results)
+    sorted_results_df = results_df.sort_values(by='total_profit', ascending=False)
+            
+    return sorted_results_df
+"""
+In main, the flow would be:
+1. if the list of strategies is multiple and benchmark flag present, 
+then you head straight into the benchmark combined strategies function  
+
+"""
+def benchmark_combined_strategy(data, start_date, end_date, stock_name, strategies, interval):
+    ## create a dictionary with strategy name and its possible parameters and keynames
+
+    signals = pd.DataFrame(index=data.index)
+
+    for strategy in strategies:
+        strategy_name = strategy['name']
+        parameter1, parameter2 = strategy['parameter1'], strategy['parameter2']
+        key_names = ()
+        
+        if strategy_name == 'MACrossover':
+            # Calculate MACrossover signals (assuming you have a function to do this)
+            signals['MACrossover'] = crossover_signal(data.copy(), parameter1, parameter2)
+        
+        elif strategy_name == 'EMA':
+            # Calculate EMA signals
+            signals['EMA'] = crossover_signal(data.copy(), parameter1, parameter2)
+
+        elif strategy_name == 'RSI':
+            # Calculate RSI signals
+            signals['RSI'] = generate_rsi_signals(data.copy(), parameter1, parameter2)
+    # Initialize combined signal
+    
+    
+    # Combine the signals (example using RSI and MACrossover)
+
+    if len(strategies) > 1:
+        combined_signal = pd.Series(index=data.index, data=0)
+        if 'RSI' in signals.columns and 'MACrossover' in signals.columns:
+            buy_condition = (signals['RSI'] == 1) & (signals['MACrossover'] == 1)
+            sell_condition = (signals['RSI'] == -1) & (signals['MACrossover'] == -1)
+            
+            combined_signal[buy_condition] = 1
+            combined_signal[sell_condition] = -1
+
+        # Evaluate the combined signal
+        # results = evaluate_combined_signal(data, combined_signal, start_date, end_date, stock_name, interval)
+        
+        # # Plot and save results
+        # plot_combined_strategy_results(results, strategies)
+        # save_combined_strategy_results_as_csv(results, start_date, end_date, stock_name, interval)
+
+    elif len(strategies) == 1:
+        combined_signal = signals[strategies[0]]
+        key_names = ()
+        parameters = []
+        parameter_range = ''
+        xlabel = ''
+        ylabel = ''
+        title = ''
+        ## get total profit  
+        results = get_results(data, start_date, end_date, stock_name, strategy_name, interval, parameter1, parameter2, key_names)
+        ##plot as a heatmap
+        plot_moving_crossover_heatmap(results, key_names, xlabel, ylabel, title)
+        ## save as csv
+        save_moving_crossover_as_csv(results, start_date, end_date, stock_name, strategy_name, interval, parameter_range)
+
+    
+
+def benchmark_strategy(data, start_date, end_date, stock_name, strategy_name, interval):
     parameter1, parameter2 = [], []
     parameter_range = ''
     key_names = ()
-    title, xlabel, ylabel = '', '', ''
-    
+    title, xlabel, ylabel = '', '', ''   
 
     if strategy_name == 'MACrossover':
         parameter1 = [i for i in range(5,21)] #fast window
@@ -63,41 +155,21 @@ def moving_crossover_benchmark(data, start_date, end_date, stock_name, strategy_
         ylabel = 'Fast Moving EMA Window'
 
     elif strategy_name == 'RSI':
-        buy_thresholds = [i for i in range(20,41)]
-        sell_thresholds = [i for i in range(60, 81)]
-        parameter_range = f'_ buy_{buy_thresholds[0]}_{buy_thresholds[-1]}_sell_{sell_thresholds[0]}_{sell_thresholds[-1]}'
+        parameter1 = [i for i in range(20,41)]
+        parameter2 = [i for i in range(60, 81)]
+        parameter_range = f'_ buy_{parameter1[0]}_{parameter1[-1]}_sell_{parameter2[0]}_{parameter2[-1]}'
         key_names = ('buy_threshold', 'sell_threshold')
         title = 'Total Profit for Different Buy and Sell Treshold Combinations'
         xlabel = 'Sell Thresholds'
         ylabel = 'Buy Thresholds'
     
+    """
+    if multiple strategies, then you need to also send in multiple parameters, args: strategy_names, parameter_list for each strategy
     
-    results = []
-    for par1 in parameter1:
-        for par2 in parameter2:
-            if par1 >= par2:
-                continue  # Skip invalid combinations where fast window >= slow window
-            
-            # Apply the moving crossover strategy
-            data_with_signals = crossover_signal(data.copy(), par1, par2)
-            data['Signal'] = data_with_signals['Buy_Sell']
-            
-            # Simulate the trades and calculate profit
-            total_profit, executed_signals = simulate_trades(data, strategy_name, interval, stock_name, start_date, end_date) 
-            
-            # Store the results
-            results.append({
-                key_names[0]: par1,
-                key_names[1]: par2,
-                'total_profit': total_profit,
-            })
-    
-    # Convert the results to a DataFrame for easy analysis
-    results_df = pd.DataFrame(results)
-    sorted_results_df = results_df.sort_values(by='total_profit', ascending=False)
-
+    """
+    ## get total profit  
+    results = get_results(data, start_date, end_date, stock_name, strategy_name, interval, parameter1, parameter2, key_names)
     ##plot as a heatmap
-    plot_moving_crossover_heatmap(sorted_results_df, key_names, xlabel, ylabel, title)
-
+    plot_moving_crossover_heatmap(results, key_names, xlabel, ylabel, title)
     ## save as csv
-    save_moving_crossover_as_csv(sorted_results_df, start_date, end_date, stock_name, strategy_name, interval, parameter_range)
+    save_moving_crossover_as_csv(results, start_date, end_date, stock_name, strategy_name, interval, parameter_range)
