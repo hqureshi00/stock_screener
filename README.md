@@ -10,6 +10,17 @@ This project processes and analyses stock data using different trading strategie
 
 Clone the repository or download the script.
 
+```sh
+git clone https://github.com/yourusername/yourproject.git
+cd yourproject
+```
+
+To install the required packages for this project, you can use the following command:
+
+```sh
+pip install -r requirements.txt
+```
+
 ## Usage
 
 To run the script, use the following command format:
