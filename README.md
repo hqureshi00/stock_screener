@@ -11,14 +11,13 @@ This project processes and analyses stock data using different trading strategie
 Clone the repository or download the script.
 
 ```sh
-git clone https://github.com/yourusername/yourproject.git
-cd yourproject
+git clone https://github.com/h-100/stock_screener.git
 ```
 
 To install the required packages for this project, you can use the following command:
 
 ```sh
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Usage
