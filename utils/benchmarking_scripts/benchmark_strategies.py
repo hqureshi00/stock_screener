@@ -24,6 +24,21 @@ def save_moving_crossover_as_csv(sorted_results_df, start_date, end_date, stock_
     except Exception as e:
         print(f"Failed to save file: {e}")
 
+def plot_macd_heatmap(sorted_results_df, key_names, xlabel, ylabel, title, zlabel):
+    unique_values = sorted_results_df[key_names[2]].unique()
+    
+    for value in unique_values:
+        subset_df = sorted_results_df[sorted_results_df[key_names[2]] == value]
+        
+        plt.figure(figsize=(12, 6))
+        pivot_table = subset_df.pivot(index=key_names[0], columns=key_names[1], values="total_profit")
+        sns.heatmap(pivot_table, annot=True, fmt=".1f", cmap="YlGnBu", annot_kws={"fontsize": 5})
+        
+        plt.title(f"{title} ({zlabel}={value})")
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.show()
+
 
 def plot_moving_crossover_heatmap(sorted_results_df, key_names, xlabel, ylabel, title):
     plt.figure(figsize=(12, 6))
@@ -70,6 +85,10 @@ In main, the flow would be:
 then you head straight into the benchmark combined strategies function  
 
 """
+
+### Verify for 10 and 11
+### Data Prep and finding out the best metrics
+### NVidia fix past data /10
 def benchmark_combined_strategy(data, start_date, end_date, stock_name, strategies, interval):
     ## create a dictionary with strategy name and its possible parameters and keynames
 
@@ -128,7 +147,6 @@ def benchmark_combined_strategy(data, start_date, end_date, stock_name, strategi
         save_moving_crossover_as_csv(results, start_date, end_date, stock_name, strategy_name, interval, parameter_range)
 
     
-
 def benchmark_strategy(data, start_date, end_date, stock_name, strategy_name, interval):
     parameter1, parameter2 = [], []
     parameter_range = ''
@@ -162,14 +180,30 @@ def benchmark_strategy(data, start_date, end_date, stock_name, strategy_name, in
         title = 'Total Profit for Different Buy and Sell Treshold Combinations'
         xlabel = 'Sell Thresholds'
         ylabel = 'Buy Thresholds'
+
+    elif strategy_name == 'MACD':
+        parameter1 = [i for i in range(12, 27)]  # Fast period
+        parameter2 = [i for i in range(26, 51)]  # Slow period
+        parameter3 = [i for i in range(9, 19)]   # Signal period
+        parameter_range = f'_fast_{parameter1[0]}_{parameter1[-1]}_slow_{parameter2[0]}_{parameter2[-1]}_signal_{parameter3[0]}_{parameter3[-1]}'
+        key_names = ('macd_fast', 'macd_slow', 'macd_signal')
+
+        title = 'Total Profit for Different MACD Combinations'
+        xlabel = 'Slow MACD Period'
+        ylabel = 'Fast MACD Period'
+        zlabel = 'Signal Period'
     
     """
-    if multiple strategies, then you need to also send in multiple parameters, args: strategy_names, parameter_list for each strategy
-    
+    if multiple strategies, then you need to also send in multiple parameters, args: strategy_names, parameter_list for each strategy    
     """
+
+    if strategy_name != 'MACD':
     ## get total profit  
-    results = get_results(data, start_date, end_date, stock_name, strategy_name, interval, parameter1, parameter2, key_names)
-    ##plot as a heatmap
-    plot_moving_crossover_heatmap(results, key_names, xlabel, ylabel, title)
-    ## save as csv
-    save_moving_crossover_as_csv(results, start_date, end_date, stock_name, strategy_name, interval, parameter_range)
+        results = get_results(data, start_date, end_date, stock_name, strategy_name, interval, parameter1, parameter2, key_names)
+        ##plot as a heatmap
+        plot_moving_crossover_heatmap(results, key_names, xlabel, ylabel, title)
+        ## save as csv
+        save_moving_crossover_as_csv(results, start_date, end_date, stock_name, strategy_name, interval, parameter_range)
+
+    else:
+        pass

@@ -35,7 +35,7 @@ python script.py [stock] [start_date] [end_date] [strategy] [--interval INTERVAL
 2. `start_date`: The start date in DD-MM-YYYY format (e.g., 01-01-2023)
 3. `end_date`: The end date in DD-MM-YYYY format (e.g., `01-01-2023)
 4. `strategy`: The trading strategy to apply. Options:
-   - `MACrossOver`
+   - `MACrossover`
    - `MACD`
    - `EMA`
    

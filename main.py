@@ -66,13 +66,13 @@ def main():
     if args.benchmark:
       benchmark_strategy(stock_data, start_date, end_date, stock, strategy_name, interval)
     else:
-      signals = crossover_signal(stock_data, small_win=7, long_win=14)
+      signals = crossover_signal(stock_data, small_win=11, long_win=20)
       stock_data['Signal'] = signals['Buy_Sell']
       total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
       if executed_signals.empty:
         print("No trades")
       else:
-        plot_moving_average_crossover_plotly(stock_data, small=7, large=14)
+        plot_moving_average_crossover_plotly(stock_data, small=11, large=20)
 
   elif strategy_name == 'EMA':
     if args.benchmark:
@@ -102,12 +102,16 @@ def main():
         plot_rsi(executed_signals, buy_threshold=30, sell_threshold=70)
 
   elif strategy_name == 'MACD':
-    signals = generate_macd_signals(stock_data)
-    stock_data['Signal'] = signals['Buy_Sell']
-    stock_data['MACD'] = signals['MACD']
-    stock_data['Signal_Line'] = signals['Signal_Line']
-    total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
-    plot_macd(executed_signals)
+    if args.benchmark:
+      pass
+      # benchmark_strategy(stock_data, start_date, end_date, stock, strategy_name, interval)
+    else:
+      signals = generate_macd_signals(stock_data)
+      stock_data['Signal'] = signals['Buy_Sell']
+      stock_data['MACD'] = signals['MACD']
+      stock_data['Signal_Line'] = signals['Signal_Line']
+      total_profit, executed_signals = simulate_trades(stock_data, strategy_name, interval, stock, start_date, end_date)
+      plot_macd(executed_signals)
 
 
 

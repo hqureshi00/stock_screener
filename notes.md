@@ -14,6 +14,21 @@
 
 
 
+#####################################
+1. Get data for all other S&P stocks? 
+2. Mark Minervini Trend Template Criteria
+3. you cluster all the techniques that give high profit, and give a confidence value to each and and use them to formulate live trading
+
+
+
+
+
+
+
+####################################
+
+
+
 
 
 
