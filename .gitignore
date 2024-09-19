@@ -1,2 +1,5 @@
 notes.md
 data/trade_iterations/
+myenv/
+strategies/__pycache__/
+utils/__pycache__/
