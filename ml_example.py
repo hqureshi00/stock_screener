@@ -11,7 +11,7 @@ import ta  # Technical Analysis library
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (accuracy_score, classification_report,
-                             confusion_matrix)
+                             confusion_matrix, ConfusionMatrixDisplay)
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
@@ -448,7 +448,11 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
 
   # if Target == 1, its a profitable buy signal
   # if Target == 0, its a profitable sell signal
-    df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
+    #df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
+   # df['Target'] = np.where((df['Future_Close'] - df['close'])/df['close'] >= 0.01, 1, 0)
+  
+    df['Target'] = np.where((df['Future_Close'] - df['close'])/df['close'] >= 0.005, 2, np.where((df['Future_Close'] - df['close'])/df['close'] <= -0.005, 0, 1))  # No significant change (less than 1% up or down)
+
     # X = df[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']]
     breakpoint()
     X = df[['bollinger_mavg', 'bollinger_std', 'bollinger_upper', 'bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
@@ -474,11 +478,27 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
   # Predict on the test set
     y_pred = model.predict(X_test)
 
-# Evaluate the model's performance
-    print(classification_report(y_test, y_pred))
-    print(f"Accuracy: {accuracy_score(y_test, y_pred)}")
+    # Generate the confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
 
-    #####Print importances
+    # Calculate the percentage by dividing by the sum of each row (actual class)
+    cm_percentage = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100
+
+    # Display the confusion matrix with percentages
+    labels = ["No Change (1)", "Going Down (0)", "Going Up (2)"]
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+
+    # Plot confusion matrix
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(cm_percentage, annot=True, fmt=".2f", cmap="Blues", cbar=False,
+                xticklabels=labels, yticklabels=labels, ax=ax)
+
+    # Set the titles and labels
+    ax.set_title("Confusion Matrix with Percentages")
+    ax.set_xlabel("Predicted Labels")
+    ax.set_ylabel("True Labels")
+
+    plt.show()
 
 # Get feature importance
     importances = model.feature_importances_
