@@ -5,6 +5,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from backtest_ml_model import BacktestTrader
 import pandas_ta as pa
 import seaborn as sns
 import ta  # Technical Analysis library
@@ -22,8 +23,6 @@ from strategies.rsi import generate_rsi_signals
 from utils.fetch_stock_data import fetch_stock_data
 from sklearn.feature_selection import RFE
 
-# from tensorflow.keras.models import Sequential
-# from tensorflow.keras.layers import LSTM, Dense
 
 def calculate_price_increase_accuracy(data, model, X_test):
     # Get predictions from the model
@@ -441,28 +440,65 @@ def test_with_rfe_features(stock_values, rsi_thresholds, ma_thresholds, ema_thre
     print("Selected features:", X.columns[rfe.support_])
 
 
+def assign_target_class(df, class_ranges):
+    """
+    Assign target class based on percentage changes.
+
+    Parameters:
+    df (pd.DataFrame): The data frame containing stock data.
+    class_ranges (list of tuples): A list of tuples where each tuple defines a class.
+                                   Format: (min_threshold, max_threshold, class_label)
+
+    Example:
+    class_ranges = [
+        (-1.0, -0.004, 0),   # Class 0: Decrease by more than 0.4%
+        (-0.004, 0.004, 1),  # Class 1: No significant change (within 0.4% up or down)
+        (0.004, 1.0, 2)      # Class 2: Increase by more than 0.4%
+    ]
+    """
+    
+    # Default to 'unclassified' in case no class fits (this is optional and can be removed)
+    df['Target'] = 3
+    
+    # Iterate over the class ranges and assign classes dynamically
+    for min_threshold, max_threshold, class_label in class_ranges:
+        df['Target'] = np.where(
+            ((df['Future_Close'] - df['close']) / df['close'] >= min_threshold) &
+            ((df['Future_Close'] - df['close']) / df['close'] < max_threshold),
+            class_label,
+            df['Target']
+        )
+    
+    return df
+
+
 
 def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
     df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
     df['Future_Close'] = df['close'].shift(-20)
 
-  # if Target == 1, its a profitable buy signal
-  # if Target == 0, its a profitable sell signal
-    #df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
-   # df['Target'] = np.where((df['Future_Close'] - df['close'])/df['close'] >= 0.01, 1, 0)
-  
-    df['Target'] = np.where((df['Future_Close'] - df['close'])/df['close'] >= 0.005, 2, np.where((df['Future_Close'] - df['close'])/df['close'] <= -0.005, 0, 1))  # No significant change (less than 1% up or down)
+    # Define the class ranges dynamically
+    class_ranges = [
+        (-50/100, -1/100, 0), 
+        (-1/100, -0.5/100, 1),  
+        (-0.5/100, 0, 2),
+        (0, 0.5/100, 3),    
+        (0.5/100, 1/100, 4),   
+        (1/100, 50/100, 5),    
+      ]
+    
+    # Assign target classes based on these ranges
+    df = assign_target_class(df, class_ranges)
 
-    # X = df[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']]
-    breakpoint()
+    #breakpoint()
     X = df[['bollinger_mavg', 'bollinger_std', 'bollinger_upper', 'bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
     'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_volume_mean_20', 'day_of_week', 'day_of_month',
     'MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']
     ]
     y = df['Target']
+
     print("Class distribution in the dataset:")
     print(y.value_counts())
-    # breakpoint()
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     print("Class distribution in the training set:")
@@ -481,11 +517,11 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     # Generate the confusion matrix
     cm = confusion_matrix(y_test, y_pred)
 
-    # Calculate the percentage by dividing by the sum of each row (actual class)
-    cm_percentage = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100
+    # Calculate the percentage by dividing by the sum of each column (predicted class)
+    cm_percentage = cm.astype('float') / cm.sum(axis=0)[np.newaxis, :] * 100
 
     # Display the confusion matrix with percentages
-    labels = ["No Change (1)", "Going Down (0)", "Going Up (2)"]
+    labels = ["0 ----", "1 ---", "2 --", "3 -", "4", "5 +", "6 ++", "7 +++", "8 ++++"]
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
 
     # Plot confusion matrix
@@ -518,7 +554,14 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     plt.title('Feature Importance')
     plt.show()
 
+    print("Backtesting...")
+    # Backtest
+    backtest_trader = BacktestTrader(model, df, rsi_thresholds, ma_thresholds, ema_thresholds)
+    
+    total_profit = backtest_trader.run_backtest()
+    breakpoint();
     return accuracy_score(y_test, y_pred)
+
   
 def main():
 
