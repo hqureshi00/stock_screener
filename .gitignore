@@ -3,3 +3,4 @@ data/trade_iterations/
 myenv/
 strategies/__pycache__/
 utils/__pycache__/
+__pycache__/
