@@ -11,7 +11,7 @@ import seaborn as sns
 import ta  # Technical Analysis library
 from sklearn.metrics import classification_report, precision_score, recall_score, roc_auc_score
 from imblearn.under_sampling import RandomUnderSampler
-
+from sklearn.preprocessing import MinMaxScaler
 
 
 from sklearn.ensemble import RandomForestClassifier
@@ -47,9 +47,9 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
         (-50/100, -0.3/100, 0), 
         (-0.3/100, -0.2/100, 1),  
         (-0.2/100, 0, 2),
-        (0, 0.2/100, 3),    
-        (0.2/100, 0.3/100, 4),   
-        (0.3/100, 50/100, 5),    
+        (0, 0.05/100, 3),    
+        (0.05/100, 0.2/100, 4),   
+        (0.2/100, 50/100, 5),    
       ]
     
       # class_ranges = [
@@ -64,9 +64,18 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     X = df[['percent_bollinger_mavg', 'bollinger_std', 'percent_bollinger_upper', 'percent_bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
     'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_mean_5', 'rolling_std_5', 'day_of_week', 'day_of_month',
     'Volatility', 'percent_open', 'percent_close', 'percent_high', 'percent_low', 'postmarket_flag', 'premarket_flag', 'avg_volume_last_20_days', 'large_volume_indicator', 'volume_spike', 'hour_of_day',
-    'gain_last_close', 'gain_second_last_close', 'gain_third_last_close', 'gain_fifth_last_close']]
+    'gain_last_close', 'gain_second_last_close', 'gain_third_last_close', 'gain_fifth_last_close', 'hour_sin', 'hour_cos', 'part_of_day', 'is_peak_hour', 'hour_of_day_scaled', 'hour_x_volume']]
 
     y = df['Binary_Target']
+
+    # Combine X and y into a new DataFrame for saving
+    df_for_saving = X.copy()  # Make a copy of X to avoid modifying the original data
+    df_for_saving['Binary_Target'] = y  # Add the target column
+
+    # Save the DataFrame to a CSV file
+    df_for_saving.to_csv('full_dataset.csv', index=False)  # Set index=False to avoid saving the row index
+
+    print("Dataset saved with X and y values before splitting.")
 
     print("Class distribution in the dataset:")
     print(y.value_counts())
@@ -89,7 +98,7 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     y_probs = model.predict_proba(X_test)[:, 1]  # Assuming the second column corresponds to class 1
 
     # Step 2: Define a new threshold
-    threshold = 0.4  # This is an example; adjust based on your specific needs
+    threshold = 0.3  # This is an example; adjust based on your specific needs
 
     # Step 3: Generate predictions based on the new threshold
     y_pred = (y_probs >= threshold).astype(int)
@@ -152,7 +161,7 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     # Backtest
 
     stock, start_date, end_date, interval = stock_values
-    backtest_stock_values = (stock, end_date, "01-03-2024", interval)  # Stock symbol, start date, end date, interval
+    backtest_stock_values = (stock, end_date, "12-12-2023", interval)  # Stock symbol, start date, end date, interval
 
     backtest_df = get_data_with_indicators(backtest_stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
 
@@ -315,6 +324,15 @@ def get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windo
 
   df['hour_of_day'] = df['timestamp'].dt.hour
 
+  df['hour_sin'] = np.sin(2 * np.pi * df['hour_of_day'] / 24)
+  df['hour_cos'] = np.cos(2 * np.pi * df['hour_of_day'] / 24)
+  df['part_of_day'] = df['hour_of_day'].apply(assign_time_of_day)
+  df['is_peak_hour'] = df['hour_of_day'].apply(lambda x: 1 if x in range(8, 11) else 0)
+  scaler = MinMaxScaler()
+  df['hour_of_day_scaled'] = scaler.fit_transform(df[['hour_of_day']])
+  df['hour_x_volume'] = df['hour_of_day'] * df['volume']
+
+
   volume_threshold = 2
   df['large_volume_indicator'] =  df['volume_spike'] > volume_threshold
 
@@ -335,16 +353,17 @@ def get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windo
 
   df.reset_index(drop=True, inplace=True)
 
-
-  #df.to_csv('training_data.csv', index=True)
-
-
-# breakpoint()
-
-  print(df.describe())
-  print(df.dtypes)
-
   return df
+
+def assign_time_of_day(hour):
+    if 6 <= hour < 12:
+        return 0
+    elif 12 <= hour < 17:
+        return 1
+    elif 17 <= hour < 21:
+        return 2
+    else:
+        return 3
 
 def assign_target_class(df, class_ranges):
     """
