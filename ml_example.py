@@ -24,149 +24,106 @@ from utils.fetch_stock_data import fetch_stock_data
 from sklearn.feature_selection import RFE
 
 
-def calculate_price_increase_accuracy(data, model, X_test):
-    # Get predictions from the model
-    y_pred = model.predict(X_test)
-    
-    # Extract the rows where the model predicted `1` (i.e., price increase)
-    predicted_increase_indices = X_test.index[y_pred == 1]
-    
-    # Get actual prices 5 days later for those rows
-    actual_future_prices = data.loc[predicted_increase_indices, 'Future_Close']
-    current_prices = data.loc[predicted_increase_indices, 'close']
-    
-    # Check if actual future price is greater than current price
-    correct_increase_predictions = (actual_future_prices > current_prices).sum()
-    
-    # Total number of times model predicted price increase (`1`)
-    total_increase_predictions = len(predicted_increase_indices)
-    
-    # Calculate accuracy as a percentage
-    if total_increase_predictions > 0:
-        accuracy = correct_increase_predictions / total_increase_predictions
-    else:
-        accuracy = 0  # Avoid division by zero if no `1` was predicted
-    
-    print(f"Accuracy for price increase predictions (1): {accuracy * 100:.2f}%")
-    return accuracy
+def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
+    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
+    df['Future_Close'] = df['close'].shift(-7)
 
-# Example function to create sequential data for LSTM
-def create_lstm_dataset(data, window_size):
-    X, y = [], []
-    for i in range(len(data) - window_size):
-        X.append(data[i:i + window_size, :-1])  # Input features
-        y.append(data[i + window_size, -1])    # Target variable
-    return np.array(X), np.array(y)
+    # Define the class ranges dynamically
+    class_ranges = [
+        (-50/100, -0.3/100, 0), 
+        (-0.3/100, -0.2/100, 1),  
+        (-0.2/100, 0, 2),
+        (0, 0.2/100, 3),    
+        (0.2/100, 0.3/100, 4),   
+        (0.3/100, 50/100, 5),    
+      ]
+    
+    # Assign target classes based on these ranges
+    df = assign_target_class(df, class_ranges)
 
-def compare_models(stock_values, rsi_thresholds, ma_windows, ema_windows):
-    breakpoint()
-    # Get data with technical indicators
-    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windows)
-    df['Future_Close'] = df['close'].shift(-20)  # Predict 5 days ahead
-    df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)  # Binary target
-    df.dropna(inplace=True)
-
-    # Features and target
-    # X = df[['RSI_signal', 'MA_signal', 'EMA_signal', 'open', 'close', 'high', 'low']]
-    X = df[['bollinger_mavg', 'bollinger_std', 'bollinger_upper', 'bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
-    'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_volume_mean_20', 'day_of_week', 'day_of_month',
-    'MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']
+    #breakpoint()
+    X = df[['percent_bollinger_mavg', 'bollinger_std', 'percent_bollinger_upper', 'percent_bollinger_lower', 'bollinger_width_delta', 'bollinger_width_delta_3', 'macd', 'macd_signal', 'macd_diff',
+    'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_mean_5', 'rolling_std_5', 'day_of_week', 'day_of_month',
+    'MA_signal', 'EMA_signal', 'Volatility', 'volume_spike', 'percent_open', 'percent_close', 'percent_high', 'percent_low']
     ]
     y = df['Target']
 
-    # Train/test split
+    print("Class distribution in the dataset:")
+    print(y.value_counts())
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    print("Class distribution in the training set:")
+    print(y_train.value_counts())
 
-    # Models to evaluate
-    models = {
-        'RandomForest': RandomForestClassifier(),
-        'SVM': SVC(),
-        'XGBoost': XGBClassifier()
-    }
+   # Initialize the XGBoost classifier
+    model = XGBClassifier()
 
-    # Evaluate each model
-    results = {}
-    for model_name, model in models.items():
-        # Train the model
-        model.fit(X_train, y_train)
-        # Predict on the test set
-        y_pred = model.predict(X_test)
-        # Evaluate accuracy
-        accuracy = accuracy_score(y_test, y_pred)
-        results[model_name] = accuracy
-        print(f"Results for {model_name}:")
-        print(classification_report(y_test, y_pred))
-        print(f"Accuracy: {accuracy}\n")
+   # Train the model
+    model.fit(X_train, y_train)
 
-    # Plot results
-    plt.bar(results.keys(), results.values())
-    plt.title('Model Comparison')
-    plt.ylabel('Accuracy')
+    # Predict on the test set
+    y_pred = model.predict(X_test)
+
+    # Generate the confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+
+    # Calculate the percentage by dividing by the sum of each column (predicted class)
+    cm_percentage = cm.astype('float') / cm.sum(axis=0)[np.newaxis, :] * 100
+
+    # Display the confusion matrix with percentages
+    labels = ["0 ----", "1 ---", "2 --", "3 +", "4 ++", "5 +++"]
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+
+    # Plot confusion matrix
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(cm_percentage, annot=True, fmt=".2f", cmap="Blues", cbar=False,
+                xticklabels=labels, yticklabels=labels, ax=ax)
+
+    # Set the titles and labels
+    ax.set_title("Confusion Matrix with Percentages")
+    ax.set_xlabel("Predicted Labels")
+    ax.set_ylabel("True Labels")
+
     plt.show()
 
-def test_model_for_different_horizons(stock_values, rsi_thresholds, ma_windows, ema_windows, horizons):
-    
-    # Store results for different horizons
-    results = []
-    
-    for horizon in horizons:
-        # Get data with the current set of indicators
-        df = get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windows)
-        
-        # Define the target based on future close price for the given horizon
-        df['Future_Close'] = df['close'].shift(-horizon)
-        df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
-        
-        # Drop NaN rows (due to shifting)
-        df.dropna(inplace=True)
-        
-        # Features and target
-        X = df[['RSI_signal', 'MA_signal', 'EMA_signal', 'open', 'close', 'high', 'low']]
-        y = df['Target']
-        
-        # Train/test split
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        
-        # Initialize the XGBoost classifier
-        model = XGBClassifier()
-        
-        # Train the model
-        model.fit(X_train, y_train)
-        
-        # Predict on the test set
-        y_pred = model.predict(X_test)
-        
-        # Evaluate the model
-        accuracy = accuracy_score(y_test, y_pred)
-        # breakpoint()
-        # accuracy = calculate_price_increase_accuracy(stock_values, model, X_test)
-        
-        # Store the result
-        results.append({
-            'horizon': horizon,
-            'accuracy': accuracy
-        })
-        
-        # Print classification report for each horizon
-        print(f"Results for horizon: {horizon}")
-        print(classification_report(y_test, y_pred))
-        print(f"Accuracy: {accuracy}\n")
-    
-    return results
+# Get feature importance
+    importances = model.feature_importances_
 
-# Plotting the accuracy for different horizons
-def plot_accuracy_for_horizons(results):
-    horizons = [result['horizon'] for result in results]
-    accuracies = [result['accuracy'] for result in results]
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(horizons, accuracies, marker='o')
-    plt.title('Model Accuracy vs Different Horizons')
-    plt.xlabel('Prediction Horizon (Days)')
-    plt.ylabel('Accuracy')
-    plt.grid(True)
+# Create a DataFrame for easy plotting
+    feature_importances = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': importances
+    }).sort_values(by='Importance', ascending=False)
+
+# Print feature importance
+    print(feature_importances)
+
+# Plot feature importance
+    plt.figure(figsize=(10, 8))
+    sns.barplot(x='Importance', y='Feature', data=feature_importances)
+    plt.title('Feature Importance')
     plt.show()
 
+    print("Backtesting...")
+    # Backtest
+
+    stock, start_date, end_date, interval = stock_values
+    backtest_stock_values = (stock, "01-01-2024", "20-09-2024", interval)  # Stock symbol, start date, end date, interval
+
+    backtest_df = get_data_with_indicators(backtest_stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
+
+    backtest_trader = BacktestTrader(model, backtest_df, rsi_thresholds, ma_thresholds, ema_thresholds, stock, interval)
+    
+    backtest_trader.run_backtest()
+    backtest_trader.log_trades()
+    print("Backtesting done")
+
+    print(backtest_trader.accumulated_profit)
+
+    #breakpoint()
+    return accuracy_score(y_test, y_pred)
+
+  
 def calculate_volatility(stock_values, window=14):
     """
     Calculate the rolling volatility (standard deviation of returns) for a given window.
@@ -215,104 +172,16 @@ def calculate_normalized_volume(stock_values, window=20):
     
     return df
 
-def test_model_for_different_parameters(stock_values, rsi_thresholds_range, ma_windows_range, ema_windows_range):
-    
-    # Store results for different combinations
-    results = []
-
-    for rsi_thresholds in rsi_thresholds_range:
-        for ma_windows in ma_windows_range:
-            for ema_windows in ema_windows_range:
-                # Get data with the current set of indicators
-                df = get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windows)
-                # Define the target based on future close price
-                df['Future_Close'] = df['close'].shift(-10)
-                df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
-                # So basically if future is greater than one or not (which is the actual price isn't it?)
-                # So you calculate the indicators, set the target as actual price
-                # Remember we are not predicting the indicators, we are predicting the target, based on RSI
-                
-                # Features and target
-                X = df[['RSI_signal', 'MA_signal', 'EMA_signal', 'open', 'close', 'high', 'low']]
-                y = df['Target']
-                
-                # Train/test split
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-                
-                # Initialize the XGBoost classifier
-                model = XGBClassifier()
-                
-                # Train the model
-                model.fit(X_train, y_train)
-                
-                # Predict on the test set
-                y_pred = model.predict(X_test)
-                
-                # Evaluate the model
-                accuracy = accuracy_score(y_test, y_pred)
-                
-                # Store the result
-                results.append({
-                    'RSI_thresholds': rsi_thresholds,
-                    'MA_windows': ma_windows,
-                    'EMA_windows': ema_windows,
-                    'accuracy': accuracy
-                })
-                
-                # Print classification report
-                print(f"Results for RSI: {rsi_thresholds}, MA: {ma_windows}, EMA: {ema_windows}")
-                print(classification_report(y_test, y_pred))
-                print(f"Accuracy: {accuracy}\n")
-    
-    return results
-
-
-# Spinner function to show progress
-def spinner_func():
-    spinner = ['-', '\\', '|', '/']
-    idx = 0
-    while not stop_spinner:
-        sys.stdout.write(f"\r{spinner[idx % len(spinner)]} Processing...")
-        sys.stdout.flush()
-        idx += 1
-        time.sleep(0.1)
-
-# Decorator to run the spinner while the function executes
-def spinner_decorator(func):
-    def wrapper(*args, **kwargs):
-        global stop_spinner
-        stop_spinner = False
-
-        # Start the spinner in a separate thread
-        t = threading.Thread(target=spinner_func)
-        t.start()
-
-        # Execute the function
-        result = func(*args, **kwargs)
-
-        # Stop the spinner after function finishes
-        stop_spinner = True
-        t.join()
-
-        sys.stdout.write("\rDone!          \n")
-        sys.stdout.flush()
-
-        return result
-    return wrapper
-
-@spinner_decorator
 def read_data(stock_name, interval, start_date, end_date):
   data = fetch_stock_data(stock_name, interval, start_date, end_date)
 
   return data
 
-# @spinner_decorator
 def get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windows):
 
   stock, start_date, end_date, interval = stock_values
   df = fetch_stock_data(stock, interval, start_date, end_date)
-#   breakpoint()
-#   df = df.sort_values('date')
+  #breakpoint()
   signals = generate_rsi_signals(df, buy_threshold=rsi_thresholds[0], sell_threshold=rsi_thresholds[1])
   df['RSI_signal'] = signals['Buy_Sell']
   signals = crossover_signal(df, small_win=ma_windows[0], long_win=ma_windows[1])
@@ -339,106 +208,84 @@ def get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windo
     # ATR
   df['atr'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
 
-#     # Lagged Price Features
-#   for lag in [1, 2, 5, 10]:
-#     df[f'close_lag_{lag}'] = df['close'].shift(lag)
-
-    # Rolling Statistics
-  df['rolling_mean_20'] = df['close'].rolling(window=20).mean()
-  df['rolling_std_20'] = df['close'].rolling(window=20).std()
+  # Rolling Statistics
+  # df['rolling_mean_20'] = df['close'].rolling(window=20).mean()
+  # df['rolling_std_20'] = df['close'].rolling(window=20).std()
   df['rolling_volume_mean_20'] = df['volume'].rolling(window=20).mean()
 
   ## Day of the week
   df['day_of_week'] = df['timestamp'].dt.dayofweek
   df['day_of_month'] = df['timestamp'].dt.day
 
-  # df.dropna(inplace=True)
-  # df.reset_index(drop=True, inplace=True)
+  # Determine if each day is a Friday
+  df['isFridayClosing'] = df['timestamp'].apply(lambda x: 1 if x.weekday() == 4 and x.time() == pd.Timestamp('16:00:00').time() else 0)
+
+  # Create a new column to hold the copied Friday closing values
+  df['Prev_Friday_Close'] = df.apply(lambda row: row['close'] if row['isFridayClosing'] == 1 else None, axis=1)
+
+  # Forward-fill the 'Prev_Friday_Close' column to propagate the Friday close value until the next Friday
+  df['Prev_Friday_Close'] = df['Prev_Friday_Close'].ffill()
+
+  # Calculate percentage changes from the last Friday's close
+  df['percent_open'] = ((df['open'] - df['Prev_Friday_Close']) / df['Prev_Friday_Close']) * 100
+  df['percent_close'] = ((df['close'] - df['Prev_Friday_Close']) / df['Prev_Friday_Close']) * 100
+  df['percent_high'] = ((df['high'] - df['Prev_Friday_Close']) / df['Prev_Friday_Close']) * 100
+  df['percent_low'] = ((df['low'] - df['Prev_Friday_Close']) / df['Prev_Friday_Close']) * 100
+
+  # Now, calculate Bollinger Bands as percentages of the last Friday's close
+  df['percent_bollinger_mavg'] = ((df['bollinger_mavg'] - df['Prev_Friday_Close']) / df['Prev_Friday_Close']) * 100
+  df['percent_bollinger_upper'] = ((df['bollinger_upper'] - df['Prev_Friday_Close']) / df['Prev_Friday_Close']) * 100
+  df['percent_bollinger_lower'] = ((df['bollinger_lower'] - df['Prev_Friday_Close']) / df['Prev_Friday_Close']) * 100
+
+  # Calculate the Bollinger Band width
+  df['bollinger_width'] = df['bollinger_upper'] - df['bollinger_lower']
+
+  # Calculate the delta (difference) in Bollinger Band widths between consecutive rows
+  df['bollinger_width_delta'] = df['bollinger_width'].diff()
+
+  # Calculate the delta (difference) in Bollinger Band widths over 3 rows 
+  df['bollinger_width_delta_3'] = df['bollinger_width'].diff(periods=3)
+  
+  df['rolling_mean_20'] = df['percent_close'].rolling(window=20).mean()
+  df['rolling_std_20'] = df['percent_close'].rolling(window=20).std()
+  df['rolling_mean_5'] = df['percent_close'].rolling(window=5).mean()
+  df['rolling_std_5'] = df['percent_close'].rolling(window=5).std()
+
+    # Ensure that the timestamp column is in datetime format
+#   if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+#      df['timestamp'] = pd.to_datetime(df['timestamp'])
+#   # Check if timestamps are in strictly increasing order
+#   if df['timestamp'].is_monotonic_increasing:
+#       print("Timestamps are in strictly increasing order.")
+#   else:
+#       print("Timestamps are NOT in strictly increasing order.")
+
+  # Filter rows where the time is between 08:00:00 and 16:00:00
+  df = df[(df['timestamp'].dt.time >= pd.to_datetime('08:00:00').time()) & 
+        (df['timestamp'].dt.time <= pd.to_datetime('16:00:00').time())]
+
+  df.reset_index(drop=True, inplace=True)
+
+  # Ensure the timestamp is in datetime format
+  df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+  # Extract time of day from the timestamp
+  df['time_of_day'] = df['timestamp'].dt.time
+
+  # Calculate the average volume for each time of day over the last 5 trading days
+  df['avg_volume_last_5_days'] = df.groupby('time_of_day')['volume'].rolling(window=20).mean().reset_index(level=0, drop=True)
+
+  df['volume_spike'] = df['volume'] / df['avg_volume_last_5_days']
+
+  volume_threshold = 2.0
+  df['large_volume_indicator'] = df['volume_spike'] > volume_threshold
+
+  df.to_csv('training_data.csv', index=True)
+
+
+#       breakpoint()
+
   return df
-
-def get_technical_features_for_lstm(stock_values):
-    rsi_thresholds, ma_thresholds, ema_thresholds = [(30, 70), (11, 20), (7, 14)]
-    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
-    df['Future_Close'] = df['close'].shift(-5)
-
-  # if Target == 1, its a profitable buy signal
-  # if Target == 0, its a profitable sell signal
-    df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
-    X = df[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']]
- 
-    y = df['Target']
-
-    return 
-
-def test_data_lstm(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
-    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
-    df['Future_Close'] = df['close'].shift(-5)
-
-  # if Target == 1, its a profitable buy signal
-  # if Target == 0, its a profitable sell signal
-    df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
-    X = df[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']]
-    y = df['Target']
-
-    return df
-
-def test_with_rfe_features(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
-    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
-    df['Future_Close'] = df['close'].shift(-20)
-
-  # if Target == 1, its a profitable buy signal
-  # if Target == 0, its a profitable sell signal
-    df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
-    # X = df[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']]
-    breakpoint()
-    X = df[['bollinger_mavg', 'bollinger_std', 'bollinger_upper', 'bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
-    'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_volume_mean_20', 'day_of_week', 'day_of_month',
-    'MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']
-    ]
-    y = df['Target']
-    print("Class distribution in the dataset:")
-    print(y.value_counts())
-    # breakpoint()
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    print("Class distribution in the training set:")
-    print(y_train.value_counts())
-
-
-   # Initialize the XGBoost classifier
-    model = XGBClassifier()
-
-    # Train the model
-    model.fit(X_train, y_train)
-
-    # Predict on the test set
-    y_pred = model.predict(X_test)
-
-   # Evaluate the model's performance
-    print(classification_report(y_test, y_pred))
-    print(f"Accuracy: {accuracy_score(y_test, y_pred)}")
-
-    #########RFE###########
-
-    rfe = RFE(estimator=model, n_features_to_select=7)  # You can choose the number of features you want to select
-
-    # Fit RFE
-    rfe.fit(X_train, y_train)
-
-    # Transform the data to only include selected features
-    X_train_rfe = rfe.transform(X_train)
-    X_test_rfe = rfe.transform(X_test)
-
-    # Train the model on the reduced dataset
-    model.fit(X_train_rfe, y_train)
-
-    # Predict and evaluate
-    y_pred = model.predict(X_test_rfe)
-    accuracy = accuracy_score(y_test, y_pred)
-
-    print(f"Accuracy with RFE selected features: {accuracy}")
-    print("Selected features:", X.columns[rfe.support_])
-
 
 def assign_target_class(df, class_ranges):
     """
@@ -471,98 +318,6 @@ def assign_target_class(df, class_ranges):
     
     return df
 
-
-
-def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
-    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
-    df['Future_Close'] = df['close'].shift(-20)
-
-    # Define the class ranges dynamically
-    class_ranges = [
-        (-50/100, -1/100, 0), 
-        (-1/100, -0.5/100, 1),  
-        (-0.5/100, 0, 2),
-        (0, 0.5/100, 3),    
-        (0.5/100, 1/100, 4),   
-        (1/100, 50/100, 5),    
-      ]
-    
-    # Assign target classes based on these ranges
-    df = assign_target_class(df, class_ranges)
-
-    #breakpoint()
-    X = df[['bollinger_mavg', 'bollinger_std', 'bollinger_upper', 'bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
-    'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_volume_mean_20', 'day_of_week', 'day_of_month',
-    'MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']
-    ]
-    y = df['Target']
-
-    print("Class distribution in the dataset:")
-    print(y.value_counts())
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    print("Class distribution in the training set:")
-    print(y_train.value_counts())
-
-
-# Initialize the XGBoost classifier
-    model = XGBClassifier()
-
-# Train the model
-    model.fit(X_train, y_train)
-
-  # Predict on the test set
-    y_pred = model.predict(X_test)
-
-    # Generate the confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
-
-    # Calculate the percentage by dividing by the sum of each column (predicted class)
-    cm_percentage = cm.astype('float') / cm.sum(axis=0)[np.newaxis, :] * 100
-
-    # Display the confusion matrix with percentages
-    labels = ["0 ----", "1 ---", "2 --", "3 -", "4", "5 +", "6 ++", "7 +++", "8 ++++"]
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
-
-    # Plot confusion matrix
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sns.heatmap(cm_percentage, annot=True, fmt=".2f", cmap="Blues", cbar=False,
-                xticklabels=labels, yticklabels=labels, ax=ax)
-
-    # Set the titles and labels
-    ax.set_title("Confusion Matrix with Percentages")
-    ax.set_xlabel("Predicted Labels")
-    ax.set_ylabel("True Labels")
-
-    plt.show()
-
-# Get feature importance
-    importances = model.feature_importances_
-
-# Create a DataFrame for easy plotting
-    feature_importances = pd.DataFrame({
-    'Feature': X.columns,
-    'Importance': importances
-    }).sort_values(by='Importance', ascending=False)
-
-# Print feature importance
-    print(feature_importances)
-
-# Plot feature importance
-    plt.figure(figsize=(10, 8))
-    sns.barplot(x='Importance', y='Feature', data=feature_importances)
-    plt.title('Feature Importance')
-    plt.show()
-
-    print("Backtesting...")
-    # Backtest
-    backtest_trader = BacktestTrader(model, df, rsi_thresholds, ma_thresholds, ema_thresholds)
-    
-    total_profit = backtest_trader.run_backtest()
-    breakpoint();
-    return accuracy_score(y_test, y_pred)
-
-  
 def main():
 
   parser = argparse.ArgumentParser(
@@ -652,68 +407,6 @@ def main():
   else:
     rsi_thresholds, ma_thresholds, ema_thresholds = [(30, 70), (11, 20), (7, 14)]
     accuracy = test_with_single_indicator_values(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
-
-#   if args.lstm:
-#      rsi_thresholds, ma_thresholds, ema_thresholds = [(30, 70), (11, 20), (7, 14)]
-#      df = test_data_lstm(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
-#      lstm_xgboost_combined_model(df)
-
-# def lstm_xgboost_combined_model(stock_values, window_size=60):
-    
-#     # Ensure stock_values contains columns: RSI, MA, EMA, open, close, high, low
-#     # And target (which is the future movement of the price, 1 for up, 0 for down)
-    
-#     # Select relevant features and target
-#     features = stock_values[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']].values
-#     target = stock_values['Target'].values.reshape(-1, 1)  # Target is 1 or 0 (future price movement)
-
-#     # Combine features and target for LSTM input
-#     data = np.hstack((features, target))
-
-#     # Create LSTM dataset (with sliding window)
-#     X_lstm, y_lstm = create_lstm_dataset(data, window_size)
-
-#     # Train/test split for LSTM
-#     X_train_lstm, X_test_lstm, y_train_lstm, y_test_lstm = train_test_split(X_lstm, y_lstm, test_size=0.2, random_state=42)
-
-#     # Build the LSTM model
-#     lstm_model = Sequential()
-#     lstm_model.add(LSTM(64, return_sequences=False, input_shape=(window_size, X_train_lstm.shape[2])))
-#     lstm_model.add(Dense(1, activation='sigmoid'))  # Sigmoid for binary classification
-
-#     lstm_model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-
-#     # Train the LSTM model
-#     lstm_model.fit(X_train_lstm, y_train_lstm, epochs=10, batch_size=32, validation_data=(X_test_lstm, y_test_lstm))
-
-#     # Get LSTM output (features) for both train and test data
-#     train_lstm_features = lstm_model.predict(X_train_lstm)
-#     test_lstm_features = lstm_model.predict(X_test_lstm)
-
-#     # Extract original technical indicator features corresponding to the LSTM outputs
-#     X_train_tech = features[window_size:len(train_lstm_features) + window_size]
-#     X_test_tech = features[len(train_lstm_features) + window_size:]
-
-#     # Combine LSTM features with technical indicators for XGBoost
-#     X_train_combined = np.hstack((X_train_tech, train_lstm_features))
-#     X_test_combined = np.hstack((X_test_tech, test_lstm_features))
-
-#     # Initialize XGBoost model
-#     xgb_model = XGBClassifier()
-
-#     # Train XGBoost on the combined LSTM and technical indicator features
-#     xgb_model.fit(X_train_combined, y_train_lstm)
-
-#     # Make predictions on the test set
-#     y_pred_xgb = xgb_model.predict(X_test_combined)
-
-#     # Evaluate the model
-#     accuracy = accuracy_score(y_test_lstm, y_pred_xgb)
-#     print(f"Accuracy: {accuracy}")
-#     print(classification_report(y_test_lstm, y_pred_xgb))
-
-#     return accuracy
-
 
 if __name__ == '__main__':
   main()
