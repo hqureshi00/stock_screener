@@ -133,7 +133,7 @@ class BacktestTrader:
             features = row[['percent_bollinger_mavg', 'bollinger_std', 'percent_bollinger_upper', 'percent_bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
                         'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_mean_5', 'rolling_std_5', 'day_of_week', 'day_of_month',
                         'Volatility', 'percent_open', 'percent_close', 'percent_high', 'percent_low', 'postmarket_flag', 'premarket_flag', 'avg_volume_last_20_days', 'large_volume_indicator', 'volume_spike', 'hour_of_day',
-                        'gain_last_close', 'gain_second_last_close', 'gain_third_last_close', 'gain_fifth_last_close']].values.reshape(1, -1)
+                        'gain_last_close', 'gain_second_last_close', 'gain_third_last_close', 'gain_fifth_last_close', 'hour_sin', 'hour_cos', 'part_of_day', 'is_peak_hour', 'hour_of_day_scaled', 'hour_x_volume']].values.reshape(1, -1)
         
         
             probability = self.model.predict_proba(features)[0][1]  # Adjust index [1] if class index differs
