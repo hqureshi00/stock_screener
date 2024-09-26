@@ -9,6 +9,10 @@ from backtest_ml_model import BacktestTrader
 import pandas_ta as pa
 import seaborn as sns
 import ta  # Technical Analysis library
+from sklearn.metrics import classification_report, precision_score, recall_score, roc_auc_score
+from imblearn.under_sampling import RandomUnderSampler
+
+
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (accuracy_score, classification_report,
@@ -22,6 +26,16 @@ from strategies.ma_crossover import crossover_signal
 from strategies.rsi import generate_rsi_signals
 from utils.fetch_stock_data import fetch_stock_data
 from sklearn.feature_selection import RFE
+
+def get_train_test_data(X, y):
+    # Calculate the split index
+    split_index = int(len(X) * 0.8)  # 80% for training, 20% for testing
+
+    # Split the data
+    X_train, X_test = X[:split_index], X[split_index:]
+    y_train, y_test = y[:split_index], y[split_index:]
+
+    return X_train, X_test, y_train, y_test
 
 
 def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
@@ -38,35 +52,65 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
         (0.3/100, 50/100, 5),    
       ]
     
+      # class_ranges = [
+      #   (-50/100, 0.3/100, 0),   
+      #   (0.3/100, 50/100, 5),    
+      # ]
     # Assign target classes based on these ranges
     df = assign_target_class(df, class_ranges)
 
-    #breakpoint()
-    X = df[['percent_bollinger_mavg', 'bollinger_std', 'percent_bollinger_upper', 'percent_bollinger_lower', 'bollinger_width_delta', 'bollinger_width_delta_3', 'macd', 'macd_signal', 'macd_diff',
+    df['Binary_Target'] = (df['Target'] >= 4).astype(int)
+
+    X = df[['percent_bollinger_mavg', 'bollinger_std', 'percent_bollinger_upper', 'percent_bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
     'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_mean_5', 'rolling_std_5', 'day_of_week', 'day_of_month',
-    'MA_signal', 'EMA_signal', 'Volatility', 'volume_spike', 'percent_open', 'percent_close', 'percent_high', 'percent_low']
-    ]
-    y = df['Target']
+    'Volatility', 'percent_open', 'percent_close', 'percent_high', 'percent_low', 'postmarket_flag', 'premarket_flag', 'avg_volume_last_20_days', 'large_volume_indicator', 'volume_spike', 'hour_of_day',
+    'gain_last_close', 'gain_second_last_close', 'gain_third_last_close', 'gain_fifth_last_close']]
+
+    y = df['Binary_Target']
 
     print("Class distribution in the dataset:")
     print(y.value_counts())
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    rus = RandomUnderSampler(random_state=42)
+    X_train_res, y_train_res = rus.fit_resample(X_train, y_train)
+
     print("Class distribution in the training set:")
-    print(y_train.value_counts())
+    print(y_train_res.value_counts())
 
    # Initialize the XGBoost classifier
     model = XGBClassifier()
 
    # Train the model
-    model.fit(X_train, y_train)
+    model.fit(X_train_res, y_train_res)
 
-    # Predict on the test set
-    y_pred = model.predict(X_test)
+    # Step 1: Get the predicted probabilities for the positive class
+    y_probs = model.predict_proba(X_test)[:, 1]  # Assuming the second column corresponds to class 1
+
+    # Step 2: Define a new threshold
+    threshold = 0.4  # This is an example; adjust based on your specific needs
+
+    # Step 3: Generate predictions based on the new threshold
+    y_pred = (y_probs >= threshold).astype(int)
+
+    # weights = [0.5, 1, 1.5, 2, 5, 10]  # Example scale_pos_weight values to test
+    # for weight in weights:
+    #     model = XGBClassifier(scale_pos_weight=weight)
+    #     model.fit(X_train, y_train)
+    #     y_pred = model.predict(X_test)
+    #     print(f"Weight: {weight}, Precision: {precision_score(y_test, y_pred)}, Recall: {recall_score(y_test, y_pred)}")
+    #     print(classification_report(y_test, y_pred))
+
+
 
     # Generate the confusion matrix
     cm = confusion_matrix(y_test, y_pred)
 
+    print(classification_report(y_test, y_pred))
+
+    # ROC-AUC score
+    print("ROC-AUC:", roc_auc_score(y_test, model.predict_proba(X_test)[:, 1]))
     # Calculate the percentage by dividing by the sum of each column (predicted class)
     cm_percentage = cm.astype('float') / cm.sum(axis=0)[np.newaxis, :] * 100
 
@@ -98,17 +142,17 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
 # Print feature importance
     print(feature_importances)
 
-# Plot feature importance
+#Plot feature importance
     plt.figure(figsize=(10, 8))
     sns.barplot(x='Importance', y='Feature', data=feature_importances)
     plt.title('Feature Importance')
     plt.show()
 
-    print("Backtesting...")
+    print("Backtesting...", end=": ")
     # Backtest
 
     stock, start_date, end_date, interval = stock_values
-    backtest_stock_values = (stock, "01-01-2024", "20-09-2024", interval)  # Stock symbol, start date, end date, interval
+    backtest_stock_values = (stock, end_date, "01-03-2024", interval)  # Stock symbol, start date, end date, interval
 
     backtest_df = get_data_with_indicators(backtest_stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
 
@@ -144,7 +188,7 @@ def calculate_volatility(stock_values, window=14):
     df['Volatility'] = df['Returns'].rolling(window=window).std()
     
     # Fill NaN values with 0 for the initial rows where rolling window can't be applied
-    df['Volatility'].fillna(0, inplace=True)
+    df['Volatility'] = df['Volatility'].fillna(0)
     
     return df
 
@@ -168,8 +212,7 @@ def calculate_normalized_volume(stock_values, window=20):
     df['Normalized_Volume'] = df['volume'] / df['Volume_MA']
     
     # Fill NaN values with 1 for the initial rows where rolling window can't be applied
-    df['Normalized_Volume'].fillna(1, inplace=True)
-    
+    df['Normalized_Volume'] = df['Normalized_Volume'].fillna(1)    
     return df
 
 def read_data(stock_name, interval, start_date, end_date):
@@ -251,39 +294,55 @@ def get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windo
   df['rolling_mean_5'] = df['percent_close'].rolling(window=5).mean()
   df['rolling_std_5'] = df['percent_close'].rolling(window=5).std()
 
-    # Ensure that the timestamp column is in datetime format
-#   if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
-#      df['timestamp'] = pd.to_datetime(df['timestamp'])
-#   # Check if timestamps are in strictly increasing order
-#   if df['timestamp'].is_monotonic_increasing:
-#       print("Timestamps are in strictly increasing order.")
-#   else:
-#       print("Timestamps are NOT in strictly increasing order.")
-
   # Filter rows where the time is between 08:00:00 and 16:00:00
-  df = df[(df['timestamp'].dt.time >= pd.to_datetime('08:00:00').time()) & 
-        (df['timestamp'].dt.time <= pd.to_datetime('16:00:00').time())]
-
-  df.reset_index(drop=True, inplace=True)
+  df = df[(df['timestamp'].dt.time >= pd.to_datetime('07:00:00').time()) & #market opens at 9:30 but experimenting with a little bit of pre market here
+        (df['timestamp'].dt.time <= pd.to_datetime('18:00:00').time())]
+  
+  df['premarket_flag'] = (df['timestamp'].dt.time < pd.to_datetime('09:30:00').time())
+  df['postmarket_flag'] = (df['timestamp'].dt.time > pd.to_datetime('16:00:00').time())
 
   # Ensure the timestamp is in datetime format
   df['timestamp'] = pd.to_datetime(df['timestamp'])
 
   # Extract time of day from the timestamp
   df['time_of_day'] = df['timestamp'].dt.time
+  df.reset_index(drop=True, inplace=True)
 
   # Calculate the average volume for each time of day over the last 5 trading days
-  df['avg_volume_last_5_days'] = df.groupby('time_of_day')['volume'].rolling(window=20).mean().reset_index(level=0, drop=True)
+  df['avg_volume_last_20_days'] = df.groupby('time_of_day')['volume'].rolling(window=20).mean().reset_index(level=0, drop=True)
 
-  df['volume_spike'] = df['volume'] / df['avg_volume_last_5_days']
+  df['volume_spike'] = df['volume'] / df['avg_volume_last_20_days']
 
-  volume_threshold = 2.0
-  df['large_volume_indicator'] = df['volume_spike'] > volume_threshold
+  df['hour_of_day'] = df['timestamp'].dt.hour
 
-  df.to_csv('training_data.csv', index=True)
+  volume_threshold = 2
+  df['large_volume_indicator'] =  df['volume_spike'] > volume_threshold
+
+      # Price action direction
+  # Calculate the gain compared to the last closing value
+  df['gain_last_close'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1)
+
+  # Calculate the gain compared to the second-last closing value
+  df['gain_second_last_close'] = (df['close'] - df['close'].shift(2)) / df['close'].shift(2)
+  df['gain_third_last_close'] = (df['close'] - df['close'].shift(3)) / df['close'].shift(2)
+  df['gain_fifth_last_close'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(2)
 
 
-#       breakpoint()
+    # Handling potential NaN values that arise from shifting
+  df['gain_last_close'] = df['gain_last_close'].fillna(0)  # No gain for the first row
+  df['gain_second_last_close'] = df['gain_second_last_close'].fillna(0)  # No gain for the first two rows
+
+
+  df.reset_index(drop=True, inplace=True)
+
+
+  #df.to_csv('training_data.csv', index=True)
+
+
+# breakpoint()
+
+  print(df.describe())
+  print(df.dtypes)
 
   return df
 
