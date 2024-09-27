@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime, timedelta
 import sys
 import threading
 import time
@@ -47,8 +48,8 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
         (-50/100, -0.3/100, 0), 
         (-0.3/100, -0.2/100, 1),  
         (-0.2/100, 0, 2),
-        (0, 0.05/100, 3),    
-        (0.05/100, 0.2/100, 4),   
+        (0, 0.025/100, 3),    
+        (0.025/100, 0.2/100, 4),   
         (0.2/100, 50/100, 5),    
       ]
     
@@ -60,6 +61,9 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     df = assign_target_class(df, class_ranges)
 
     df['Binary_Target'] = (df['Target'] >= 4).astype(int)
+    df['Actual_gain'] = df['Future_Close'] - df['close']
+    df.dropna(subset=['Actual_gain'], inplace=True)
+
 
     X = df[['percent_bollinger_mavg', 'bollinger_std', 'percent_bollinger_upper', 'percent_bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
     'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_mean_5', 'rolling_std_5', 'day_of_week', 'day_of_month',
@@ -98,23 +102,15 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     y_probs = model.predict_proba(X_test)[:, 1]  # Assuming the second column corresponds to class 1
 
     # Step 2: Define a new threshold
-    threshold = 0.3  # This is an example; adjust based on your specific needs
+    threshold = 0.6  # This is an example; adjust based on your specific needs
 
     # Step 3: Generate predictions based on the new threshold
     y_pred = (y_probs >= threshold).astype(int)
 
-    # weights = [0.5, 1, 1.5, 2, 5, 10]  # Example scale_pos_weight values to test
-    # for weight in weights:
-    #     model = XGBClassifier(scale_pos_weight=weight)
-    #     model.fit(X_train, y_train)
-    #     y_pred = model.predict(X_test)
-    #     print(f"Weight: {weight}, Precision: {precision_score(y_test, y_pred)}, Recall: {recall_score(y_test, y_pred)}")
-    #     print(classification_report(y_test, y_pred))
-
-
-
     # Generate the confusion matrix
     cm = confusion_matrix(y_test, y_pred)
+
+    ####COST CALCULATION####
 
     print(classification_report(y_test, y_pred))
 
@@ -161,7 +157,7 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     # Backtest
 
     stock, start_date, end_date, interval = stock_values
-    backtest_stock_values = (stock, end_date, "12-12-2023", interval)  # Stock symbol, start date, end date, interval
+    backtest_stock_values = (stock,end_date, "12-12-2024", interval)  # Stock symbol, start date, end date, interval
 
     backtest_df = get_data_with_indicators(backtest_stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
 
@@ -232,7 +228,22 @@ def read_data(stock_name, interval, start_date, end_date):
 def get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windows):
 
   stock, start_date, end_date, interval = stock_values
-  df = fetch_stock_data(stock, interval, start_date, end_date)
+
+#   if isinstance(start_date, str):
+#     d_start_date = datetime.strptime(start_date, '%m-%d-%Y')
+
+
+
+
+  d_start_date = datetime.strptime(start_date, "%d-%m-%Y")  # Adjust format as necessary
+
+  # Subtract 7 days
+  adjusted_start_date = d_start_date - timedelta(days=30)
+  adjusted_start_date_str = adjusted_start_date.strftime("%d-%m-%Y")  # Format as needed
+
+  # breakpoint();
+
+  df = fetch_stock_data(stock, interval, adjusted_start_date_str, end_date)
   #breakpoint()
   signals = generate_rsi_signals(df, buy_threshold=rsi_thresholds[0], sell_threshold=rsi_thresholds[1])
   df['RSI_signal'] = signals['Buy_Sell']
@@ -346,9 +357,11 @@ def get_data_with_indicators(stock_values, rsi_thresholds, ma_windows, ema_windo
   df['gain_fifth_last_close'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(2)
 
 
-    # Handling potential NaN values that arise from shifting
-  df['gain_last_close'] = df['gain_last_close'].fillna(0)  # No gain for the first row
-  df['gain_second_last_close'] = df['gain_second_last_close'].fillna(0)  # No gain for the first two rows
+#     # Handling potential NaN values that arise from shifting
+#   df['gain_last_close'] = df['gain_last_close'].fillna(0)  # No gain for the first row
+#   df['gain_second_last_close'] = df['gain_second_last_close'].fillna(0)  # No gain for the first two rows
+
+  df = df[df['timestamp'] >= start_date] # drop the predates. They were needed for backward rolling windows. 
 
 
   df.reset_index(drop=True, inplace=True)

@@ -35,9 +35,9 @@ class BacktestTrader:
         trade_entry = {
             'entry_price': row['close'],
             'entry_date': row['timestamp'],
-            'exit_index': current_index + 7,
+            'exit_index': current_index + 5,
             'predicted_proba' : probability,
-            'num_stocks' : int(int((self.initial_capital + self.accumulated_profit) / row['close'])/2)
+            'num_stocks' : int(int((self.initial_capital + self.accumulated_profit) / row['close'])/7)
         }
         self.open_positions.append(trade_entry)
 
@@ -75,6 +75,7 @@ class BacktestTrader:
                     'entry_day': entry_datetime.day,                           # Day of the entry date
                     'entry_month': entry_datetime.month,                       # Month of the entry date
                     'entry_hour': entry_datetime.hour, 
+                    'entry_year': entry_datetime.year, 
                     'trade_duration': duration 
                                                                   
                 }
@@ -109,7 +110,7 @@ class BacktestTrader:
         Returns True if a trade was extended, False otherwise."""
         for trade in self.open_positions:
             if trade['exit_index'] == current_index:
-                trade['exit_index'] += 7  # Extend exit by 10 more candles
+                trade['exit_index'] += 5  # Extend exit by 10 more candles
                 #print(f"Trade at index {current_index} extended to {trade['exit_index']}")
                 return True  # Return True to indicate trade was extended
         return False  # Return False if no trade was extended
@@ -140,7 +141,7 @@ class BacktestTrader:
 
 
             #breakpoint()
-            if probability >= 0.4:  # Highest class (buy signal)
+            if probability >= 0.6:  # Highest class (buy signal)
                 if not self.extendTradeAtExpiry(i):  # Check for trade extension
                     self.place_trade(row, i, probability)  # Place a new trade
             self.close_trades(row, i)  # Close trades regardless of prediction
