@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import csv
 from datetime import datetime
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
@@ -8,6 +7,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.pyplot as plt
+from constants import TRADE_LEN, TRANSACTION_COST_PER_STOCK, BACKTESTING_THRESHOLD
 
 
 class BacktestTrader:
@@ -35,9 +35,9 @@ class BacktestTrader:
         trade_entry = {
             'entry_price': row['close'],
             'entry_date': row['timestamp'],
-            'exit_index': current_index + 5,
+            'exit_index': current_index + TRADE_LEN,
             'predicted_proba' : probability,
-            'num_stocks' : int(int((self.initial_capital + self.accumulated_profit) / row['close'])/7)
+            'num_stocks' : int(int((self.initial_capital + self.accumulated_profit) / row['close'])/TRADE_LEN)
         }
         self.open_positions.append(trade_entry)
 
@@ -52,7 +52,7 @@ class BacktestTrader:
                 #breakpoint()
                 profit = (exit_price - trade['entry_price']) * num_stocks
                 profit_percentage = (profit / (trade['entry_price']*num_stocks)) * 100
-                self.accumulated_profit += (profit - (0.005 * num_stocks))  # Assuming a transaction cost of 1
+                self.accumulated_profit += (profit - (TRANSACTION_COST_PER_STOCK * num_stocks))  # Assuming a transaction cost of 0.005
                 
 
                 # Assuming both dates are already datetime objects; if not, convert them
@@ -110,7 +110,7 @@ class BacktestTrader:
         Returns True if a trade was extended, False otherwise."""
         for trade in self.open_positions:
             if trade['exit_index'] == current_index:
-                trade['exit_index'] += 5  # Extend exit by 10 more candles
+                trade['exit_index'] += TRADE_LEN  # Extend exit by 10 more candles
                 #print(f"Trade at index {current_index} extended to {trade['exit_index']}")
                 return True  # Return True to indicate trade was extended
         return False  # Return False if no trade was extended
@@ -136,12 +136,10 @@ class BacktestTrader:
                         'Volatility', 'percent_open', 'percent_close', 'percent_high', 'percent_low', 'postmarket_flag', 'premarket_flag', 'avg_volume_last_20_days', 'large_volume_indicator', 'volume_spike', 'hour_of_day',
                         'gain_last_close', 'gain_second_last_close', 'gain_third_last_close', 'gain_fifth_last_close', 'hour_sin', 'hour_cos', 'part_of_day', 'is_peak_hour', 'hour_of_day_scaled', 'hour_x_volume']].values.reshape(1, -1)
         
-        
             probability = self.model.predict_proba(features)[0][1]  # Adjust index [1] if class index differs
 
-
             #breakpoint()
-            if probability >= 0.6:  # Highest class (buy signal)
+            if probability >= BACKTESTING_THRESHOLD:  # Highest class (buy signal)
                 if not self.extendTradeAtExpiry(i):  # Check for trade extension
                     self.place_trade(row, i, probability)  # Place a new trade
             self.close_trades(row, i)  # Close trades regardless of prediction
