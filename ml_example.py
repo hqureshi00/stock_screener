@@ -3,6 +3,7 @@ import sys
 import threading
 import time
 import matplotlib.pyplot as plt
+<<<<<<< HEAD
 import seaborn as sns
 import numpy as np
 import pandas as pd
@@ -17,11 +18,20 @@ from strategies.ma_crossover import crossover_signal
 from strategies.rsi import generate_rsi_signals
 from utils.fetch_stock_data import fetch_stock_data
 
+=======
+import numpy as np
+import pandas as pd
+import pandas_ta as pa
+import seaborn as sns
+import ta  # Technical Analysis library
+
+>>>>>>> 85ea2d623823eb33398205b53e63cc5eeca557f5
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (accuracy_score, classification_report,
                              confusion_matrix)
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.svm import SVC
+<<<<<<< HEAD
 from sklearn.feature_selection import RFE
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
@@ -53,6 +63,19 @@ def find_correlated_features(df):
     
     print(highly_correlated_df)
 
+=======
+from xgboost import XGBClassifier
+
+from strategies.ema import ema_strategy
+from strategies.ma_crossover import crossover_signal
+from strategies.rsi import generate_rsi_signals
+from utils.fetch_stock_data import fetch_stock_data
+from sklearn.feature_selection import RFE
+
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import LSTM, Dense
+
+>>>>>>> 85ea2d623823eb33398205b53e63cc5eeca557f5
 def calculate_price_increase_accuracy(data, model, X_test):
     # Get predictions from the model
     y_pred = model.predict(X_test)
@@ -99,7 +122,11 @@ def compare_models(stock_values, rsi_thresholds, ma_windows, ema_windows):
     # X = df[['RSI_signal', 'MA_signal', 'EMA_signal', 'open', 'close', 'high', 'low']]
     X = df[['bollinger_mavg', 'bollinger_std', 'bollinger_upper', 'bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
     'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_volume_mean_20', 'day_of_week', 'day_of_month',
+<<<<<<< HEAD
     'MA_signal', 'EMA_signal', 'Volatility', 'close_lag_1', 'close_lag_5', 'close_lag_20', 'Normalized_Volume', 'open', 'close', 'high', 'low']
+=======
+    'MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']
+>>>>>>> 85ea2d623823eb33398205b53e63cc5eeca557f5
     ]
     y = df['Target']
 
@@ -340,7 +367,12 @@ def get_data_with_indicators_test(stock_values, rsi_thresholds, ma_windows, ema_
 
   stock, start_date, end_date, interval = stock_values
   df = fetch_stock_data(stock, interval, start_date, end_date)
+<<<<<<< HEAD
   #breakpoint()
+=======
+#   breakpoint()
+#   df = df.sort_values('date')
+>>>>>>> 85ea2d623823eb33398205b53e63cc5eeca557f5
   signals = generate_rsi_signals(df, buy_threshold=rsi_thresholds[0], sell_threshold=rsi_thresholds[1])
   df['RSI_signal'] = signals['Buy_Sell']
   signals = crossover_signal(df, small_win=ma_windows[0], long_win=ma_windows[1])
@@ -351,6 +383,37 @@ def get_data_with_indicators_test(stock_values, rsi_thresholds, ma_windows, ema_
   df['Volatility'] = signals['Volatility']
   signals = calculate_normalized_volume(df)
   df['Normalized_Volume'] = signals['Normalized_Volume']
+<<<<<<< HEAD
+=======
+
+  ##########################
+
+  df['bollinger_mavg'] = df['close'].rolling(window=20).mean()
+  df['bollinger_std'] = df['close'].rolling(window=20).std()
+  df['bollinger_upper'] = df['bollinger_mavg'] + (df['bollinger_std'] * 2)
+  df['bollinger_lower'] = df['bollinger_mavg'] - (df['bollinger_std'] * 2)
+
+    # MACD
+  df['macd'] = ta.trend.macd(df['close'])
+  df['macd_signal'] = ta.trend.macd_signal(df['close'])
+  df['macd_diff'] = df['macd'] - df['macd_signal']
+
+    # ATR
+  df['atr'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
+
+#     # Lagged Price Features
+#   for lag in [1, 2, 5, 10]:
+#     df[f'close_lag_{lag}'] = df['close'].shift(lag)
+
+    # Rolling Statistics
+  df['rolling_mean_20'] = df['close'].rolling(window=20).mean()
+  df['rolling_std_20'] = df['close'].rolling(window=20).std()
+  df['rolling_volume_mean_20'] = df['volume'].rolling(window=20).mean()
+
+  ## Day of the week
+  df['day_of_week'] = df['timestamp'].dt.dayofweek
+  df['day_of_month'] = df['timestamp'].dt.day
+>>>>>>> 85ea2d623823eb33398205b53e63cc5eeca557f5
 
   ##########################
 
@@ -522,6 +585,103 @@ def get_technical_features_for_lstm(stock_values):
     y = df['Target']
 
     return 
+<<<<<<< HEAD
+=======
+
+def test_data_lstm(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
+    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
+    df['Future_Close'] = df['close'].shift(-5)
+
+  # if Target == 1, its a profitable buy signal
+  # if Target == 0, its a profitable sell signal
+    df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
+    X = df[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']]
+    y = df['Target']
+
+    return df
+
+def test_with_rfe_features(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
+    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
+    df['Future_Close'] = df['close'].shift(-20)
+
+  # if Target == 1, its a profitable buy signal
+  # if Target == 0, its a profitable sell signal
+    df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
+    # X = df[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']]
+    breakpoint()
+    X = df[['bollinger_mavg', 'bollinger_std', 'bollinger_upper', 'bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
+    'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_volume_mean_20', 'day_of_week', 'day_of_month',
+    'MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']
+    ]
+    y = df['Target']
+    print("Class distribution in the dataset:")
+    print(y.value_counts())
+    # breakpoint()
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    print("Class distribution in the training set:")
+    print(y_train.value_counts())
+
+
+   # Initialize the XGBoost classifier
+    model = XGBClassifier()
+
+    # Train the model
+    model.fit(X_train, y_train)
+
+    # Predict on the test set
+    y_pred = model.predict(X_test)
+
+   # Evaluate the model's performance
+    print(classification_report(y_test, y_pred))
+    print(f"Accuracy: {accuracy_score(y_test, y_pred)}")
+
+    #########RFE###########
+
+    rfe = RFE(estimator=model, n_features_to_select=7)  # You can choose the number of features you want to select
+
+    # Fit RFE
+    rfe.fit(X_train, y_train)
+
+    # Transform the data to only include selected features
+    X_train_rfe = rfe.transform(X_train)
+    X_test_rfe = rfe.transform(X_test)
+
+    # Train the model on the reduced dataset
+    model.fit(X_train_rfe, y_train)
+
+    # Predict and evaluate
+    y_pred = model.predict(X_test_rfe)
+    accuracy = accuracy_score(y_test, y_pred)
+
+    print(f"Accuracy with RFE selected features: {accuracy}")
+    print("Selected features:", X.columns[rfe.support_])
+
+
+
+def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
+    df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
+    df['Future_Close'] = df['close'].shift(-20)
+
+  # if Target == 1, its a profitable buy signal
+  # if Target == 0, its a profitable sell signal
+    df['Target'] = np.where(df['Future_Close'] > df['close'], 1, 0)
+    # X = df[['MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']]
+    breakpoint()
+    X = df[['bollinger_mavg', 'bollinger_std', 'bollinger_upper', 'bollinger_lower', 'macd', 'macd_signal', 'macd_diff',
+    'atr', 'rolling_mean_20', 'rolling_std_20', 'rolling_volume_mean_20', 'day_of_week', 'day_of_month',
+    'MA_signal', 'EMA_signal', 'Volatility', 'Normalized_Volume', 'open', 'close', 'high', 'low']
+    ]
+    y = df['Target']
+    print("Class distribution in the dataset:")
+    print(y.value_counts())
+    # breakpoint()
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    print("Class distribution in the training set:")
+    print(y_train.value_counts())
+
+>>>>>>> 85ea2d623823eb33398205b53e63cc5eeca557f5
 
 def test_data_lstm(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds):
     df = get_data_with_indicators(stock_values, rsi_thresholds, ma_thresholds, ema_thresholds)
@@ -730,6 +890,7 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
     print(classification_report(y_test, y_pred))
     print(f"Accuracy: {accuracy_score(y_test, y_pred)}")
 
+<<<<<<< HEAD
 
     ### TEst for training
 
@@ -755,6 +916,8 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
 
     print("Confusion Matrix:\n", cm)
 
+=======
+>>>>>>> 85ea2d623823eb33398205b53e63cc5eeca557f5
     #####Print importances
 
 # Get feature importance
@@ -769,6 +932,7 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
 # Print feature importance
     print(feature_importances)
 
+<<<<<<< HEAD
     breakpoint()
 
     ### model for cv
@@ -813,6 +977,8 @@ def test_with_single_indicator_values(stock_values, rsi_thresholds, ma_threshold
 
     plot_cross_validation(model_for_cv)
 
+=======
+>>>>>>> 85ea2d623823eb33398205b53e63cc5eeca557f5
 # Plot feature importance
     plt.figure(figsize=(10, 8))
     sns.barplot(x='Importance', y='Feature', data=feature_importances)
