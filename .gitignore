@@ -5,3 +5,5 @@ strategies/__pycache__/
 utils/__pycache__/
 __pycache__/
 trades.csv
+.DS_Store
+full_dataset.csv
